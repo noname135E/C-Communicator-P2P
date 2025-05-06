@@ -10,7 +10,8 @@
 
 #include "sock_prep.h"
 
-const char* MCAST_GROUP = "230.220.210.200";
+const char* MCAST_GROUP = "224.0.0.192";
+const char* MCAST6_GROUP = "ffx2::192";
 const unsigned int PORT = 8192;
 
 int GetInet4SocketUDP(const char *ifname) {
@@ -26,6 +27,12 @@ int GetInet4SocketUDP(const char *ifname) {
     bind_addr.sin_family = AF_INET;
     bind_addr.sin_addr.s_addr = INADDR_ANY;
     bind_addr.sin_port = htons(PORT);
+
+    const int optval1 = 1;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &optval1, sizeof(optval1)) < 0) {
+        close(sockfd);
+        return -5;
+    }
 
     if ((bind(sockfd, (const struct sockaddr *) &bind_addr, sizeof(bind_addr))) < 0) {
         close(sockfd);
@@ -46,6 +53,55 @@ int GetInet4SocketUDP(const char *ifname) {
 
     struct in_addr if_addr = ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr;
     if (setsockopt(sockfd, IPPROTO_IP, IP_MULTICAST_IF, &if_addr, sizeof(if_addr)) < 0) {
+        close(sockfd);
+        return -5;
+    }
+
+    return sockfd;
+}
+
+int GetInet6SocketUDP(const char *ifname) {
+    int sockfd;
+    struct sockaddr_in6 bind_addr;
+
+    if ((sockfd = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
+        return -1;
+    }
+
+    memset(&bind_addr, 0, sizeof(bind_addr));
+    bind_addr.sin6_family = AF_INET6;
+    bind_addr.sin6_addr = in6addr_any;
+    bind_addr.sin6_port = htons(PORT);
+
+    const int optval1 = 1;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &optval1, sizeof(optval1)) < 0) {
+        close(sockfd);
+        return -6;
+    }
+
+    if (setsockopt(sockfd, IPPROTO_IPV6, IPV6_V6ONLY, &optval1, sizeof(optval1)) < 0) {
+        // Done as an if to make it easier to add logging in the future
+        // IPv4 support in an IPv6 socket hopefully should not break anything
+        // => no need to disable IPv6 communication if this fails
+    }
+
+    if ((bind(sockfd, (const struct sockaddr *) &bind_addr, sizeof(bind_addr))) < 0) {
+        close(sockfd);
+        return -2;
+    }
+
+    if ((setsockopt(sockfd, SOL_SOCKET, SO_BINDTODEVICE, ifname, strlen(ifname) + 1)) < 0) {
+        close(sockfd);
+        return -3;
+    }
+
+    unsigned int ifindex = if_nametoindex(ifname);
+    if (ifindex == 0) {
+        close(sockfd);
+        return -4;
+    }
+
+    if (setsockopt(sockfd, IPPROTO_IPV6, IPV6_MULTICAST_IF, &ifindex, sizeof(ifindex)) < 0) {
         close(sockfd);
         return -5;
     }

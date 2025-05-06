@@ -18,9 +18,15 @@ int main(int argc, char *argv[]) {
         perror(argv[1]);
         exit(2);
     }
+
+    // FIXME: %i is the wrong one for uint
     if ((udp4 = GetInet4SocketUDP(argv[1])) < 0) {
         fprintf(stderr, "Failed to start IPv4/UDP communication, code %i\n", udp4);
     }
+    if ((udp6 = GetInet6SocketUDP(argv[1])) < 0) {
+        fprintf(stderr, "Failed to start IPv6/UDP communication, code %i\n", udp6);
+    }
+
     sleep(10);
     return 0;
 }

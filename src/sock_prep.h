@@ -2,7 +2,8 @@
 #ifndef SRC_SOCK_PREP_H_
 #define SRC_SOCK_PREP_H_
 
-const char* MCAST_GROUP;
+extern const char* MCAST_GROUP;
+extern const char* MCAST6_GROUP;
 extern const unsigned int PORT;
 
 int GetInet4SocketUDP(const char *ifname);
