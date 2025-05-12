@@ -19,7 +19,6 @@ int main(int argc, char *argv[]) {
         exit(2);
     }
 
-    // FIXME: %i is the wrong one for uint
     if ((udp4 = GetInet4SocketUDP(argv[1])) < 0) {
         fprintf(stderr, "Failed to start IPv4/UDP communication, code %i\n", udp4);
     }
