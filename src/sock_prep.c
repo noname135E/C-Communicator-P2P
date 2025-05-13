@@ -11,7 +11,7 @@
 #include "sock_prep.h"
 
 const char* MCAST_GROUP = "224.0.0.192";
-const char* MCAST6_GROUP = "ffx2::192";
+const char* MCAST6_GROUP = "ff02::C0";
 const unsigned int PORT = 8192;
 
 int GetInet4SocketUDP(const char *ifname) {
@@ -63,6 +63,7 @@ int GetInet4SocketUDP(const char *ifname) {
 int GetInet6SocketUDP(const char *ifname) {
     int sockfd;
     struct sockaddr_in6 bind_addr;
+    struct ipv6_mreq mreq;
 
     if ((sockfd = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
         return -1;
@@ -104,6 +105,18 @@ int GetInet6SocketUDP(const char *ifname) {
     if (setsockopt(sockfd, IPPROTO_IPV6, IPV6_MULTICAST_IF, &ifindex, sizeof(ifindex)) < 0) {
         close(sockfd);
         return -5;
+    }
+
+    memset(&mreq, 0, sizeof(mreq));
+    if (inet_pton(AF_INET6, MCAST6_GROUP, &mreq.ipv6mr_multiaddr) != 1) {
+        close(sockfd);
+        return -7;
+    }
+
+    mreq.ipv6mr_interface = ifindex;
+    if (setsockopt(sockfd, IPPROTO_IPV6, IPV6_JOIN_GROUP, &mreq, sizeof(mreq)) < 0) {
+        close(sockfd);
+        return -8;
     }
 
     return sockfd;

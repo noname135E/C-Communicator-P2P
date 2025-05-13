@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include "net_func.h"
 #include "sock_prep.h"
 
 int main(int argc, char *argv[]) {
@@ -13,8 +14,8 @@ int main(int argc, char *argv[]) {
         printf("Usage: c_comm [INTERFACE NAME]\n");
         exit(1);
     }
-    int iface_id = if_nametoindex(argv[1]);
-    if (iface_id == 0) {
+    int ifindex = if_nametoindex(argv[1]);
+    if (ifindex == 0) {
         perror(argv[1]);
         exit(2);
     }
@@ -25,7 +26,6 @@ int main(int argc, char *argv[]) {
     if ((udp6 = GetInet6SocketUDP(argv[1])) < 0) {
         fprintf(stderr, "Failed to start IPv6/UDP communication, code %i\n", udp6);
     }
-
     sleep(10);
     return 0;
 }
