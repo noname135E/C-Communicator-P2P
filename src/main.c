@@ -7,6 +7,7 @@
 #include <unistd.h>
 
 #include "net_func.h"
+#include "peer.h"
 #include "sock_prep.h"
 
 const unsigned int MAX_POLL_FDS = 5;
@@ -30,7 +31,8 @@ static inline void AddPollFd(
 enum Command {
     UNKNOWN,
     HELP,
-    EXIT
+    EXIT,
+    SCAN,
 };
 
 enum Command DetermineCommand(char *cmd_string) {
@@ -39,6 +41,8 @@ enum Command DetermineCommand(char *cmd_string) {
         output = EXIT;
     } else if (strcmp(cmd_string, "/help") == 0) {
         output = HELP;
+    } else if (strcmp(cmd_string, "/scan") == 0) {
+        output = SCAN;
     }
     return output;
 }
@@ -46,6 +50,7 @@ enum Command DetermineCommand(char *cmd_string) {
 void PrintHelp() {
     printf("/help - displays help\n");
     printf("/exit - exits application\n");
+    printf("/scan - scans network in search of peers\n");
     printf("\n");
 }
 
@@ -58,6 +63,9 @@ int main(int argc, char *argv[]) {
 
     struct pollfd fds[MAX_POLL_FDS];
     unsigned int nfds = 0;  // also current length, but next id feels better
+
+    const size_t PEERS_SIZE = 32;
+    Peer peers[PEERS_SIZE];
 
     if (argc != 3) {
         printf("Usage: c_comm [INTERFACE NAME] [USER NAME]\n");
@@ -123,15 +131,17 @@ int main(int argc, char *argv[]) {
                                 case HELP:
                                     PrintHelp();
                                     break;
+                                case SCAN:
+                                    printf("Sending scans...\n");
+                                    SendScan(udp4, udp6, ifindex, user_identifier);
+                                    break;
                             }
                         }
                         if (strcmp(stdin_buffer, "/exit") == 0) {
                             break;
                         }
-                    } else if (fds[i].fd == udp4) {  // handle IPv4/UDP socket
-                        continue;  // TODO(.): Implement
-                    } else if (fds[i].fd == udp6) {  // handle IPv6/UDP socket
-                        continue;  // TODO(.): Implement
+                    } else if (fds[i].fd == udp4 || fds[i].fd == udp6) {  // handle IPv4/UDP and IPv6/UDP sockets
+                        ListenUDP(fds[i].fd, peers, PEERS_SIZE);
                     }
                 }
             }
@@ -148,6 +158,8 @@ int main(int argc, char *argv[]) {
         }
         nfds = j;
     }
-
+    
+    close(udp4);
+    close(udp6);
     return EXIT_SUCCESS;
 }
