@@ -28,7 +28,8 @@ int GetInet4SocketUDP(const char *ifname) {
     bind_addr.sin_addr.s_addr = INADDR_ANY;
     bind_addr.sin_port = htons(PORT);
 
-    const int optval1 = 1;
+    const unsigned int optval0 = 0;
+    const unsigned int optval1 = 1;
     if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &optval1, sizeof(optval1)) < 0) {
         close(sockfd);
         return -5;
@@ -57,6 +58,8 @@ int GetInet4SocketUDP(const char *ifname) {
         return -5;
     }
 
+    setsockopt(sockfd, IPPROTO_IP, IP_MULTICAST_LOOP, &optval0, sizeof(optval0));
+
     return sockfd;
 }
 
@@ -74,7 +77,8 @@ int GetInet6SocketUDP(const char *ifname) {
     bind_addr.sin6_addr = in6addr_any;
     bind_addr.sin6_port = htons(PORT);
 
-    const int optval1 = 1;
+    const unsigned int optval0 = 0;
+    const unsigned int optval1 = 1;
     if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &optval1, sizeof(optval1)) < 0) {
         close(sockfd);
         return -6;
@@ -118,6 +122,8 @@ int GetInet6SocketUDP(const char *ifname) {
         close(sockfd);
         return -8;
     }
+
+    setsockopt(sockfd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, &optval0, sizeof(optval0));
 
     return sockfd;
 }
