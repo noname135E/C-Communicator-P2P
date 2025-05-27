@@ -18,6 +18,7 @@ int GetInet4SocketUDP(const char *ifname) {
     int sockfd;
     struct sockaddr_in bind_addr;
     struct ifreq ifr;
+    struct ip_mreq mreq;
 
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
         return -1;
@@ -57,6 +58,14 @@ int GetInet4SocketUDP(const char *ifname) {
         close(sockfd);
         return -5;
     }
+
+    mreq.imr_multiaddr.s_addr = inet_addr(MCAST_GROUP);
+    mreq.imr_interface.s_addr = if_addr.s_addr;
+    if (setsockopt(sockfd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) {
+        close(sockfd);
+        return -6;
+    }
+
 
     setsockopt(sockfd, IPPROTO_IP, IP_MULTICAST_LOOP, &optval0, sizeof(optval0));
 

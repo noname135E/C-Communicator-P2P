@@ -13,6 +13,8 @@
 const unsigned int MAX_POLL_FDS = 5;
 const unsigned int POLL_TIMEOUT_MS = 100;
 
+// TODO(.) / FIXME: CHECK IPv4 DISCOVERY ACTUALLY WORKS
+
 static inline void AddPollFd(
     struct pollfd *fds,
     unsigned int *nfds,
@@ -29,20 +31,20 @@ static inline void AddPollFd(
 }
 
 enum Command {
-    UNKNOWN,
-    HELP,
-    EXIT,
-    SCAN,
+    CMD_UNKNOWN,
+    CMD_HELP,
+    CMD_EXIT,
+    CMD_SCAN,
 };
 
 enum Command DetermineCommand(char *cmd_string) {
-    enum Command output = UNKNOWN;
+    enum Command output = CMD_UNKNOWN;
     if (strcmp(cmd_string, "/exit") == 0) {
-        output = EXIT;
+        output = CMD_EXIT;
     } else if (strcmp(cmd_string, "/help") == 0) {
-        output = HELP;
+        output = CMD_HELP;
     } else if (strcmp(cmd_string, "/scan") == 0) {
-        output = SCAN;
+        output = CMD_SCAN;
     }
     return output;
 }
@@ -111,7 +113,14 @@ int main(int argc, char *argv[]) {
         if (ret < 0) {
             perror("[FAIL] Poll");
             return EXIT_FAILURE;
-        } else if (ret != 0) {
+        }
+        if (ret > 0) {
+            // TODO(.): REMOVE THIS LATER, DEBUG ONLY
+            for (unsigned int i = 0; i < nfds; i++) {
+                if (fds[i].revents & POLLIN) {
+                    printf("POLLIN on fd %d\n", fds[i].fd);
+                }
+            }
             for (unsigned int i = 0; i < nfds; i++) {
                 if (fds[i].revents & POLLIN) {
                     if (fds[i].fd == STDIN_FILENO) {  // handle user input
@@ -119,19 +128,19 @@ int main(int argc, char *argv[]) {
                         stdin_buffer[strcspn(stdin_buffer, "\n")] = '\0';
                         if (stdin_buffer[0] == '/') {
                             switch (DetermineCommand(stdin_buffer)) {
-                                case UNKNOWN:
+                                case CMD_UNKNOWN:
                                     printf("Unknown command.\n");
                                     break;
-                                case EXIT:
+                                case CMD_EXIT:
                                     printf("Exiting...\n");
                                     run = 0;
                                     close(udp4);
                                     close(udp6);
                                     return EXIT_SUCCESS;
-                                case HELP:
+                                case CMD_HELP:
                                     PrintHelp();
                                     break;
-                                case SCAN:
+                                case CMD_SCAN:
                                     printf("Sending scans...\n");
                                     SendScan(udp4, udp6, ifindex, user_identifier);
                                     break;
@@ -141,7 +150,7 @@ int main(int argc, char *argv[]) {
                             break;
                         }
                     } else if (fds[i].fd == udp4 || fds[i].fd == udp6) {  // handle IPv4/UDP and IPv6/UDP sockets
-                        ListenUDP(fds[i].fd, peers, PEERS_SIZE);
+                        ListenUDP(fds[i].fd, peers, PEERS_SIZE, user_identifier);
                     }
                 }
             }

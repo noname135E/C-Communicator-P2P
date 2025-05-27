@@ -13,7 +13,26 @@ enum MessageType {
 
 long int Encapsulate(const enum MessageType msg_type, char* msg, const size_t buf_size);
 int Deencapsulate(char* msg, ssize_t msg_length);
-void ListenUDP(int udp, Peer peers[], const size_t peers_size);
+void ListenUDP(int udp, Peer peers[], const size_t peers_size, const char* user_identifier);
 int SendScan(int udp4, int udp6, int ifindex, const char *user_identifier);
+int SendScanResponse(int udp, const char *user_identifier, struct sockaddr_storage* src_addr, socklen_t src_addr_size);
+void ProcessMessageScan(
+    int udp,
+    const char* user_idenitifer,
+    Peer peers[],
+    const size_t peers_size,
+    char* msg,
+    size_t msg_length,
+    struct sockaddr_storage* src_addr,
+    socklen_t src_addr_size
+);
+void ProcessMessageScanResponse(
+    Peer peers[],
+    const size_t peers_size,
+    char* msg,
+    size_t msg_length,
+    struct sockaddr_storage* src_addr,
+    socklen_t src_addr_size
+);
 
 #endif  // SRC_NET_FUNC_H_

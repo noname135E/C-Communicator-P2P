@@ -42,13 +42,13 @@ int Deencapsulate(char *msg, ssize_t msg_length) {
     return ((int) msg_type);
 }
 
-void ListenUDP(int udp, Peer peers[], const size_t peers_size) {
+void ListenUDP(int udp, Peer peers[], const size_t peers_size, const char* user_identifier) {
     size_t BUFFER_SIZE = 2048;
     char buffer[BUFFER_SIZE];
-    struct sockaddr_storage client_addr;
-    socklen_t client_addr_size = sizeof(client_addr);
+    struct sockaddr_storage src_addr;
+    socklen_t src_addr_size = sizeof(src_addr);
 
-    ssize_t recv_length = recvfrom(udp, buffer, BUFFER_SIZE - 1, 0, (struct sockaddr*) &client_addr, &client_addr_size);
+    ssize_t recv_length = recvfrom(udp, buffer, BUFFER_SIZE - 1, 0, (struct sockaddr*) &src_addr, &src_addr_size);
     if (recv_length < 0) {
         return;
     }
@@ -59,6 +59,26 @@ void ListenUDP(int udp, Peer peers[], const size_t peers_size) {
     // TODO(.): Remove thi later, debug only
     printf("Received message of type: %i\n", msg_type);
     printf("Contents: %s\n", buffer);
+
+    switch (msg_type) {
+        case SCAN:
+            // send SCAN_RESPONSE and add to peers
+            ProcessMessageScan(
+                udp,
+                user_identifier,
+                peers,
+                peers_size,
+                buffer,
+                msg_length,
+                &src_addr,
+                src_addr_size);
+            break;
+        case SCAN_RESPONSE:
+            // Just add to peers
+            break;
+        default:
+            return;
+    }
 }
 
 int SendScan(int udp4, int udp6, int ifindex, const char* user_identifier) {
@@ -114,4 +134,58 @@ int SendScan(int udp4, int udp6, int ifindex, const char* user_identifier) {
     }
 
     return 0;
+}
+
+int SendScanResponse(int udp, const char *user_identifier, struct sockaddr_storage* src_addr, socklen_t src_addr_size) {
+    char msg[512];
+    size_t msg_length;
+
+    if (strlen(user_identifier) > sizeof(msg)) {
+        fprintf(stderr, "[FAIL] Scan Response attempted to send excessively long user identifier\n");
+        exit(-1);
+    }
+    snprintf(msg, sizeof(msg), "%s", user_identifier);
+
+    long int encap_length;
+    const enum MessageType msg_type = SCAN_RESPONSE;
+    if ((encap_length = Encapsulate(msg_type, msg, sizeof(msg))) < 0) {
+        fprintf(stderr, "[FAIL] Scan Response: failed to encapsulate message, error %li\n", encap_length);
+        return -1;
+    }
+    msg_length = (size_t) encap_length;
+
+    int bytes_sent;
+    bytes_sent = sendto(udp, msg, msg_length, 0, (struct sockaddr*) src_addr, src_addr_size);
+    return (bytes_sent < 0) ? -1 : 0;
+}
+
+void ProcessMessageScan(
+    int udp,
+    const char* user_identifier,
+    Peer peers[],
+    const size_t peers_size,
+    char* msg,
+    size_t msg_length,
+    struct sockaddr_storage* src_addr,
+    socklen_t src_addr_size
+) {
+    // TODO(.): Implement
+    SendScanResponse(
+        udp,
+        user_identifier,
+        src_addr,
+        src_addr_size);
+    return;
+}
+
+void ProcessMessageScanResponse(
+    Peer peers[],
+    const size_t peers_size,
+    char* msg,
+    size_t msg_length,
+    struct sockaddr_storage* src_addr,
+    socklen_t src_addr_size
+) {
+    // TODO(.): Implement
+    return;
 }
