@@ -34,7 +34,9 @@ enum Command {
     CMD_UNKNOWN,
     CMD_HELP,
     CMD_EXIT,
+    CMD_CLEAR_ALL,
     CMD_SCAN,
+    CMD_PRINT_PEERS,
 };
 
 enum Command DetermineCommand(char *cmd_string) {
@@ -43,6 +45,10 @@ enum Command DetermineCommand(char *cmd_string) {
         output = CMD_EXIT;
     } else if (strcmp(cmd_string, "/help") == 0) {
         output = CMD_HELP;
+    } else if (strcmp(cmd_string, "/clear") == 0) {
+        output = CMD_CLEAR_ALL;
+    } else if (strcmp(cmd_string, "/list") == 0 || strcmp(cmd_string, "/peers") == 0) {
+        output = CMD_PRINT_PEERS;
     } else if (strcmp(cmd_string, "/scan") == 0) {
         output = CMD_SCAN;
     }
@@ -50,9 +56,11 @@ enum Command DetermineCommand(char *cmd_string) {
 }
 
 void PrintHelp() {
-    printf("/help - displays help\n");
-    printf("/exit - exits application\n");
-    printf("/scan - scans network in search of peers\n");
+    printf("/help   - displays help\n");
+    printf("/exit   - exits application\n");
+    printf("/clear  - clears all peers\n");
+    printf("/list   - prints peers\n");
+    printf("/scan   - scans network in search of peers\n");
     printf("\n");
 }
 
@@ -68,6 +76,7 @@ int main(int argc, char *argv[]) {
 
     const size_t PEERS_SIZE = 32;
     Peer peers[PEERS_SIZE];
+    memset(peers, 0, sizeof(peers));
 
     if (argc != 3) {
         printf("Usage: c_comm [INTERFACE NAME] [USER NAME]\n");
@@ -115,12 +124,6 @@ int main(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
         if (ret > 0) {
-            // TODO(.): REMOVE THIS LATER, DEBUG ONLY
-            for (unsigned int i = 0; i < nfds; i++) {
-                if (fds[i].revents & POLLIN) {
-                    printf("POLLIN on fd %d\n", fds[i].fd);
-                }
-            }
             for (unsigned int i = 0; i < nfds; i++) {
                 if (fds[i].revents & POLLIN) {
                     if (fds[i].fd == STDIN_FILENO) {  // handle user input
@@ -139,6 +142,13 @@ int main(int argc, char *argv[]) {
                                     return EXIT_SUCCESS;
                                 case CMD_HELP:
                                     PrintHelp();
+                                    break;
+                                case CMD_CLEAR_ALL:
+                                    ClearAllPeers(peers, PEERS_SIZE);
+                                    printf("Cleared all peers.\n");
+                                    break;
+                                case CMD_PRINT_PEERS:
+                                    PrintPeers(peers, PEERS_SIZE);
                                     break;
                                 case CMD_SCAN:
                                     printf("Sending scans...\n");

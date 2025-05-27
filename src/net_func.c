@@ -74,7 +74,12 @@ void ListenUDP(int udp, Peer peers[], const size_t peers_size, const char* user_
                 src_addr_size);
             break;
         case SCAN_RESPONSE:
-            // Just add to peers
+            ProcessMessageScanResponse(
+                peers,
+                peers_size,
+                buffer,
+                msg_length,
+                &src_addr);
             break;
         default:
             return;
@@ -169,12 +174,23 @@ void ProcessMessageScan(
     struct sockaddr_storage* src_addr,
     socklen_t src_addr_size
 ) {
-    // TODO(.): Implement
     SendScanResponse(
         udp,
         user_identifier,
         src_addr,
         src_addr_size);
+
+    char src_user_identifier[320];
+    size_t copy_len = msg_length < 320 ? msg_length : 320;
+    memcpy(src_user_identifier, msg, copy_len);
+    src_user_identifier[copy_len] = '\0';
+    if (src_addr->ss_family == AF_INET) {
+        struct sockaddr_in *addr4 = (struct sockaddr_in *)src_addr;
+        SetPeerInet4(peers, peers_size, &addr4->sin_addr, src_user_identifier);
+    } else if (src_addr->ss_family == AF_INET6) {
+        struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *)src_addr;
+        SetPeerInet6(peers, peers_size, &addr6->sin6_addr, src_user_identifier);
+    }
     return;
 }
 
@@ -183,9 +199,18 @@ void ProcessMessageScanResponse(
     const size_t peers_size,
     char* msg,
     size_t msg_length,
-    struct sockaddr_storage* src_addr,
-    socklen_t src_addr_size
+    struct sockaddr_storage* src_addr
 ) {
-    // TODO(.): Implement
+    char src_user_identifier[320];
+    size_t copy_len = msg_length < 320 ? msg_length : 320;
+    memcpy(src_user_identifier, msg, copy_len);
+    src_user_identifier[copy_len] = '\0';
+    if (src_addr->ss_family == AF_INET) {
+        struct sockaddr_in *addr4 = (struct sockaddr_in *)src_addr;
+        SetPeerInet4(peers, peers_size, &addr4->sin_addr, src_user_identifier);
+    } else if (src_addr->ss_family == AF_INET6) {
+        struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *)src_addr;
+        SetPeerInet6(peers, peers_size, &addr6->sin6_addr, src_user_identifier);
+    }
     return;
 }

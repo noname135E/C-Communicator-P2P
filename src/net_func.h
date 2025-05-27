@@ -31,8 +31,7 @@ void ProcessMessageScanResponse(
     const size_t peers_size,
     char* msg,
     size_t msg_length,
-    struct sockaddr_storage* src_addr,
-    socklen_t src_addr_size
+    struct sockaddr_storage* src_addr
 );
 
 #endif  // SRC_NET_FUNC_H_
