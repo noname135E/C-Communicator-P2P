@@ -32,11 +32,13 @@ static inline void AddPollFd(
 
 enum Command {
     CMD_UNKNOWN,
+    CMD_SILENT,
     CMD_HELP,
     CMD_EXIT,
     CMD_CLEAR_ALL,
     CMD_SCAN,
     CMD_PRINT_PEERS,
+    CMD_SEND,
 };
 
 enum Command DetermineCommand(char *cmd_string) {
@@ -51,6 +53,11 @@ enum Command DetermineCommand(char *cmd_string) {
         output = CMD_PRINT_PEERS;
     } else if (strcmp(cmd_string, "/scan") == 0) {
         output = CMD_SCAN;
+    } else if (strncmp(cmd_string, "/send ", 6) == 0) {
+        output = CMD_SEND;
+    } else if (strncmp(cmd_string, "/send ", 5) == 0) {
+        printf("Usage: /send [PEER ID] [MESSAGE]\n");
+        output = CMD_SILENT;
     }
     return output;
 }
@@ -61,6 +68,8 @@ void PrintHelp() {
     printf("/clear  - clears all peers\n");
     printf("/list   - prints peers\n");
     printf("/scan   - scans network in search of peers\n");
+    printf("/send   - send message to peer\n");
+    printf("  Usage: /send [PEER ID] [MESSAGE]\n");
     printf("\n");
 }
 
@@ -68,7 +77,7 @@ int main(int argc, char *argv[]) {
     int udp4, udp6;
     char hostname[256];
     char user_identifier[320];
-    char stdin_buffer[1024];
+    char stdin_buffer[2048];
     unsigned short run = 1;
 
     struct pollfd fds[MAX_POLL_FDS];
@@ -154,6 +163,11 @@ int main(int argc, char *argv[]) {
                                     printf("Sending scans...\n");
                                     SendScan(udp4, udp6, ifindex, user_identifier);
                                     break;
+                                case CMD_SEND:
+                                    SendMsg(udp4, udp6, stdin_buffer, sizeof(stdin_buffer), peers, PEERS_SIZE);
+                                    break;
+                                default:
+                                    break;
                             }
                         }
                         if (strcmp(stdin_buffer, "/exit") == 0) {
@@ -177,7 +191,7 @@ int main(int argc, char *argv[]) {
         }
         nfds = j;
     }
-    
+
     close(udp4);
     close(udp6);
     return EXIT_SUCCESS;

@@ -33,5 +33,6 @@ void ProcessMessageScanResponse(
     size_t msg_length,
     struct sockaddr_storage* src_addr
 );
+int SendMsg(int udp4, int udp6, char* cmd, size_t cmd_length, Peer peers[], size_t peers_size);
 
 #endif  // SRC_NET_FUNC_H_

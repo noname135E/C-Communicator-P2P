@@ -42,6 +42,7 @@ int Deencapsulate(char *msg, ssize_t msg_length) {
     return ((int) msg_type);
 }
 
+// TODO(.): Add handling of incoming user messages.
 void ListenUDP(int udp, Peer peers[], const size_t peers_size, const char* user_identifier) {
     size_t BUFFER_SIZE = 2048;
     char buffer[BUFFER_SIZE];
@@ -213,4 +214,37 @@ void ProcessMessageScanResponse(
         SetPeerInet6(peers, peers_size, &addr6->sin6_addr, src_user_identifier);
     }
     return;
+}
+
+int SendMsg(int udp4, int udp6, char* cmd, size_t cmd_length, Peer peers[], size_t peers_size) {
+    char *data = cmd + 6;
+    size_t data_len = cmd_length - 6;
+
+    char *token = strtok(data, " ");
+    if (!token) {
+        fprintf(stderr, "[FAIL] Could not send - invalid ID format.\n");
+        return -1;
+    }
+
+    size_t id = (size_t)strtoul(token, NULL, 10);
+    if (id > peers_size) {
+        fprintf(stderr, "[FAIL] Could not send - invalid Peer ID\n");
+        return -2;
+    }
+    if (memcmp(&peers[id], (const uint8_t[sizeof(Peer)]){0}, sizeof(Peer)) == 0) {
+        fprintf(stderr, "[FAIL] Could not send - invalid Peer\n");
+        return -3;
+    }
+
+    char *message = memchr(data, ' ', data_len) + 1;
+    size_t message_len = cmd_length - (message - cmd);
+    if (message_len == 0) {
+        printf("[FAIL] Could not send - message not found.\n");
+        return -4;
+    }
+
+    // TODO(.): Check which address is available
+    // TODO(.): send using correct socket
+
+    return 0;
 }
