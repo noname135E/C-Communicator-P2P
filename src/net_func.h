@@ -9,6 +9,7 @@
 enum MessageType {
     SCAN,
     SCAN_RESPONSE,
+    CLEARTEXT_MESSAGE,
 };
 
 long int Encapsulate(const enum MessageType msg_type, char* msg, const size_t buf_size);

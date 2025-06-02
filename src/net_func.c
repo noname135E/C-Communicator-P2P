@@ -218,7 +218,6 @@ void ProcessMessageScanResponse(
 
 int SendMsg(int udp4, int udp6, char* cmd, size_t cmd_length, Peer peers[], size_t peers_size) {
     char *data = cmd + 6;
-    size_t data_len = cmd_length - 6;
 
     char *token = strtok(data, " ");
     if (!token) {
@@ -227,7 +226,7 @@ int SendMsg(int udp4, int udp6, char* cmd, size_t cmd_length, Peer peers[], size
     }
 
     size_t id = (size_t)strtoul(token, NULL, 10);
-    if (id > peers_size) {
+    if (id >= peers_size) {
         fprintf(stderr, "[FAIL] Could not send - invalid Peer ID\n");
         return -2;
     }
@@ -236,15 +235,51 @@ int SendMsg(int udp4, int udp6, char* cmd, size_t cmd_length, Peer peers[], size
         return -3;
     }
 
-    char *message = memchr(data, ' ', data_len) + 1;
-    size_t message_len = cmd_length - (message - cmd);
-    if (message_len == 0) {
+    char *message = strtok(NULL, "");
+    if (!message || *message == '\0') {
         printf("[FAIL] Could not send - message not found.\n");
         return -4;
     }
 
-    // TODO(.): Check which address is available
-    // TODO(.): send using correct socket
+    char msg_buf[2048];
+    memset(&msg_buf, 0, sizeof(msg_buf));
+    size_t message_len = strlen(message);
+    size_t copy_len = message_len < sizeof(msg_buf) - 1 ? message_len : sizeof(msg_buf) - 1;
+    memcpy(msg_buf, message, copy_len);
+    msg_buf[copy_len] = '\0';
 
+    const enum MessageType msg_type = CLEARTEXT_MESSAGE;
+    long int encap_length = 0;
+    if ((encap_length = Encapsulate(msg_type, msg_buf, sizeof(msg_buf))) < 0) {
+        fprintf(stderr, "[FAIL] Scan: failed to encapsulate message, error %li\n", encap_length);
+        return -7;
+    }
+    message_len = (size_t) encap_length;
+
+    if (peers[id].inet4.seen > peers[id].inet6.seen) {  // 4.seen > 0 so addr is set, use IPv4
+        struct sockaddr_in remote;
+        memset(&remote, 0, sizeof(remote));
+        remote.sin_family = AF_INET;
+        remote.sin_addr = peers[id].inet4.addr4;
+        remote.sin_port = htons(PORT);
+        if (sendto(udp4, msg_buf, message_len, 0, (struct sockaddr *)&remote, sizeof(remote)) < 0) {
+            perror("[FAIL] IPv4: Could not send");
+            return -6;
+        }
+    } else if (peers[id].inet6.seen != 0) {  // 6.seen != 0, so addr is set, use IPv6
+        struct sockaddr_in6 remote;
+        memset(&remote, 0, sizeof(remote));
+        remote.sin6_family = AF_INET6;
+        remote.sin6_addr = peers[id].inet6.addr6;
+        remote.sin6_port = htons(PORT);
+        if (sendto(udp6, msg_buf, message_len, 0, (struct sockaddr *)&remote, sizeof(remote)) < 0) {
+            perror("[FAIL] IPv6: Could not send");
+            return -6;
+        }
+        return -6;
+    } else {  // I don't think this should ever happen
+        printf("[FAIL] Could not send - Peer has no associated IPv4/IPv6 address. Somehow.\n");
+        return -5;
+    }
     return 0;
 }
