@@ -23,9 +23,9 @@ typedef struct {
     SeenInet6 inet6;
 } Peer;
 
-int FindByInet4(Peer peers[], const size_t peers_size, struct in_addr *addr4);
-int FindByInet6(Peer peers[], const size_t peers_size, struct in6_addr *addr6);
-int FindByUserIdentifier(Peer peers[], const size_t peers_size, const char *user_identifier);
+long int FindByInet4(Peer peers[], const size_t peers_size, struct in_addr *addr4);
+long int FindByInet6(Peer peers[], const size_t peers_size, struct in6_addr *addr6);
+// int FindByUserIdentifier(Peer peers[], const size_t peers_size, const char *user_identifier);
 int SetPeerInet4(Peer peers[], const size_t peers_size, struct in_addr *addr4, const char *user_identifier);
 int SetPeerInet6(Peer peers[], const size_t peers_size, struct in6_addr *addr6, const char *user_identifier);
 int CreatePeerAtPosition(

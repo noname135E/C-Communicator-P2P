@@ -6,6 +6,23 @@
 
 #include "peer.h"
 
+long int FindByInet4(Peer peers[], const size_t peers_size, struct in_addr *addr4) {
+    for (size_t i = 0; i < peers_size; i++) {
+        if (addr4->s_addr == peers[i].inet4.addr4.s_addr) {
+            return i;
+        }
+    }
+    return -1;
+}
+long int FindByInet6(Peer peers[], const size_t peers_size, struct in6_addr *addr6) {
+        for (size_t i = 0; i < peers_size; i++) {
+        if (memcmp(addr6, &peers[i].inet6.addr6, sizeof(struct in6_addr)) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 int SetPeerInet4(Peer peers[], const size_t peers_size, struct in_addr *addr4, const char *user_identifier) {
     int pos_by_ui = -1;
     int pos_by_addr = -1;

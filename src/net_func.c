@@ -42,7 +42,6 @@ int Deencapsulate(char *msg, ssize_t msg_length) {
     return ((int) msg_type);
 }
 
-// TODO(.): Add handling of incoming user messages.
 void ListenUDP(int udp, Peer peers[], const size_t peers_size, const char* user_identifier) {
     size_t BUFFER_SIZE = 2048;
     char buffer[BUFFER_SIZE];
@@ -57,9 +56,9 @@ void ListenUDP(int udp, Peer peers[], const size_t peers_size, const char* user_
     int msg_type = Deencapsulate(buffer, recv_length);
     size_t msg_length = strlen(buffer);
 
-    // TODO(.): Remove thi later, debug only
-    printf("Received message of type: %i\n", msg_type);
-    printf("Contents: %s\n", buffer);
+    // debug things
+    // printf("Received message of type: %i\n", msg_type);
+    // printf("Contents: %s\n", buffer);
 
     switch (msg_type) {
         case SCAN:
@@ -80,6 +79,13 @@ void ListenUDP(int udp, Peer peers[], const size_t peers_size, const char* user_
                 peers_size,
                 buffer,
                 msg_length,
+                &src_addr);
+            break;
+        case CLEARTEXT_MESSAGE:
+            ProcessMessageCleartext(
+                peers,
+                peers_size,
+                buffer,
                 &src_addr);
             break;
         default:
@@ -216,7 +222,36 @@ void ProcessMessageScanResponse(
     return;
 }
 
-int SendMsg(int udp4, int udp6, char* cmd, size_t cmd_length, Peer peers[], size_t peers_size) {
+void ProcessMessageCleartext(
+    Peer peers[],
+    const size_t peers_size,
+    char* msg,
+    struct sockaddr_storage* remote_addr
+) {
+    size_t id;
+    if (remote_addr->ss_family == AF_INET) {
+        struct sockaddr_in *addr4 = (struct sockaddr_in *)remote_addr;
+        long int location = FindByInet4(peers, peers_size, &addr4->sin_addr);
+        if (location >= 0) {
+            id = (size_t) location;
+        } else {
+            return;
+        }
+    } else if (remote_addr->ss_family == AF_INET6) {
+        struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *)remote_addr;
+        long int location = FindByInet6(peers, peers_size, &addr6->sin6_addr);
+        if (location >= 0) {
+            id = (size_t) location;
+        } else {
+            return;
+        }
+    } else {
+        return;
+    }
+    printf("[%li] %s: %s\n", id, peers[id].user_identifier, msg);
+}
+
+int SendMsg(int udp4, int udp6, char* cmd, Peer peers[], size_t peers_size) {
     char *data = cmd + 6;
 
     char *token = strtok(data, " ");

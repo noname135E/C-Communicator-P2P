@@ -164,7 +164,7 @@ int main(int argc, char *argv[]) {
                                     SendScan(udp4, udp6, ifindex, user_identifier);
                                     break;
                                 case CMD_SEND:
-                                    SendMsg(udp4, udp6, stdin_buffer, sizeof(stdin_buffer), peers, PEERS_SIZE);
+                                    SendMsg(udp4, udp6, stdin_buffer, peers, PEERS_SIZE);
                                     break;
                                 default:
                                     break;
