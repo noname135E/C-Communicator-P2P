@@ -39,6 +39,8 @@ enum Command {
     CMD_SCAN,
     CMD_PRINT_PEERS,
     CMD_SEND,
+    CMD_DISCONNECT_ALL,
+    CMD_WHOAMI,
 };
 
 enum Command DetermineCommand(char *cmd_string) {
@@ -58,18 +60,24 @@ enum Command DetermineCommand(char *cmd_string) {
     } else if (strncmp(cmd_string, "/send ", 5) == 0) {
         printf("Usage: /send [PEER ID] [MESSAGE]\n");
         output = CMD_SILENT;
+    } else if (strcmp(cmd_string, "/disconnect") == 0) {
+        output = CMD_DISCONNECT_ALL;
+    } else if (strcmp(cmd_string, "/whoami") == 0) {
+        output = CMD_WHOAMI;
     }
     return output;
 }
 
 void PrintHelp() {
-    printf("/help   - displays help\n");
-    printf("/exit   - exits application\n");
-    printf("/clear  - clears all peers\n");
-    printf("/list   - prints peers\n");
-    printf("/scan   - scans network in search of peers\n");
-    printf("/send   - send message to peer\n");
-    printf("  Usage: /send [PEER ID] [MESSAGE]\n");
+    printf("/help       - displays help\n");
+    printf("/exit       - exits application\n");
+    // printf("/clear  - clears all peers\n");
+    printf("/disconnect - disconnects all peers\n");
+    printf("/list       - prints peers\n");
+    printf("/scan       - scans network in search of peers\n");
+    printf("/send       - send message to peer\n");
+    printf("      Usage: /send [PEER ID] [MESSAGE]\n");
+    printf("/whoami     - prints own user identifier");
     printf("\n");
 }
 
@@ -146,8 +154,11 @@ int main(int argc, char *argv[]) {
                                 case CMD_EXIT:
                                     printf("Exiting...\n");
                                     run = 0;
+                                    SendDisconnectToAll(udp4, udp6, peers, PEERS_SIZE);
+                                    printf("Sent disconnects to all peers.\n");
                                     close(udp4);
                                     close(udp6);
+                                    printf("Goodbye!\n");
                                     return EXIT_SUCCESS;
                                 case CMD_HELP:
                                     PrintHelp();
@@ -160,11 +171,20 @@ int main(int argc, char *argv[]) {
                                     PrintPeers(peers, PEERS_SIZE);
                                     break;
                                 case CMD_SCAN:
-                                    printf("Sending scans...\n");
+                                    printf("Sent scans.\n");
                                     SendScan(udp4, udp6, ifindex, user_identifier);
                                     break;
                                 case CMD_SEND:
                                     SendMsg(udp4, udp6, stdin_buffer, peers, PEERS_SIZE);
+                                    break;
+                                case CMD_DISCONNECT_ALL:
+                                    printf("Sending disconnects to all peers.\n");
+                                    SendDisconnectToAll(udp4, udp6, peers, PEERS_SIZE);
+                                    ClearAllPeers(peers, PEERS_SIZE);
+                                    printf("Cleared all peers.\n");
+                                    break;
+                                case CMD_WHOAMI:
+                                    printf("You are: \"%s\"\n", user_identifier);
                                     break;
                                 default:
                                     break;

@@ -10,6 +10,7 @@ enum MessageType {
     SCAN,
     SCAN_RESPONSE,
     CLEARTEXT_MESSAGE,
+    DISCONNECT,
 };
 
 long int Encapsulate(const enum MessageType msg_type, char* msg, const size_t buf_size);
@@ -40,6 +41,12 @@ void ProcessMessageCleartext(
     char* msg,
     struct sockaddr_storage* remote_addr
 );
+void ProcessMessageDisconnect(
+    Peer peers[],
+    const size_t peers_size,
+    struct sockaddr_storage* remote_addr
+);
 int SendMsg(int udp4, int udp6, char* cmd, Peer peers[], size_t peers_size);
-
+int SendDisconnect(int udp4, int udp6, Peer peers[], size_t peers_size, size_t id);
+void SendDisconnectToAll(int udp4, int udp6, Peer peers[], size_t peers_size);
 #endif  // SRC_NET_FUNC_H_

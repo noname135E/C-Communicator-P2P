@@ -88,6 +88,12 @@ void ListenUDP(int udp, Peer peers[], const size_t peers_size, const char* user_
                 buffer,
                 &src_addr);
             break;
+        case DISCONNECT:
+            ProcessMessageDisconnect(
+                peers,
+                peers_size,
+                &src_addr);
+            break;
         default:
             return;
     }
@@ -251,6 +257,35 @@ void ProcessMessageCleartext(
     printf("[%li] %s: %s\n", id, peers[id].user_identifier, msg);
 }
 
+void ProcessMessageDisconnect(
+    Peer peers[],
+    const size_t peers_size,
+    struct sockaddr_storage* remote_addr
+) {
+    size_t id;
+    if (remote_addr->ss_family == AF_INET) {
+        struct sockaddr_in *addr4 = (struct sockaddr_in *)remote_addr;
+        long int location = FindByInet4(peers, peers_size, &addr4->sin_addr);
+        if (location >= 0) {
+            id = (size_t) location;
+        } else {
+            return;
+        }
+    } else if (remote_addr->ss_family == AF_INET6) {
+        struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *)remote_addr;
+        long int location = FindByInet6(peers, peers_size, &addr6->sin6_addr);
+        if (location >= 0) {
+            id = (size_t) location;
+        } else {
+            return;
+        }
+    } else {
+        return;
+    }
+    printf("PEER LIST CHANGED: Disconnect request from peer [%li]: %s\n", id, peers[id].user_identifier);
+    RemovePeerAddressAtPosition(peers, peers_size, id, 1, 1);
+}
+
 int SendMsg(int udp4, int udp6, char* cmd, Peer peers[], size_t peers_size) {
     char *data = cmd + 6;
 
@@ -286,7 +321,7 @@ int SendMsg(int udp4, int udp6, char* cmd, Peer peers[], size_t peers_size) {
     const enum MessageType msg_type = CLEARTEXT_MESSAGE;
     long int encap_length = 0;
     if ((encap_length = Encapsulate(msg_type, msg_buf, sizeof(msg_buf))) < 0) {
-        fprintf(stderr, "[FAIL] Scan: failed to encapsulate message, error %li\n", encap_length);
+        fprintf(stderr, "[FAIL] SendMsg: failed to encapsulate message, error %li\n", encap_length);
         return -7;
     }
     message_len = (size_t) encap_length;
@@ -317,4 +352,47 @@ int SendMsg(int udp4, int udp6, char* cmd, Peer peers[], size_t peers_size) {
         return -5;
     }
     return 0;
+}
+
+int SendDisconnect(int udp4, int udp6, Peer peers[], size_t peers_size, size_t id) {
+    if (id >= peers_size) {
+        return -1;
+    } else if (memcmp(&peers[id], (const uint8_t[sizeof(Peer)]){0}, sizeof(Peer)) == 0) {
+        return -2;
+    }
+
+    char msg_buf[2];
+    size_t message_len;
+    const enum MessageType msg_type = DISCONNECT;
+    long int encap_length = 0;
+    if ((encap_length = Encapsulate(msg_type, msg_buf, sizeof(msg_buf))) < 0) {
+        fprintf(stderr, "[FAIL] Disconnect: failed to encapsulate message, error %li\n", encap_length);
+        return -7;
+    }
+    message_len = (size_t) encap_length;
+
+    if (peers[id].inet4.seen > peers[id].inet6.seen) {
+        struct sockaddr_in remote;
+        memset(&remote, 0, sizeof(remote));
+        remote.sin_family = AF_INET;
+        remote.sin_addr = peers[id].inet4.addr4;
+        remote.sin_port = htons(PORT);
+        sendto(udp4, msg_buf, message_len, 0, (struct sockaddr *)&remote, sizeof(remote));
+    } else if (peers[id].inet6.seen != 0) {
+        struct sockaddr_in6 remote;
+        memset(&remote, 0, sizeof(remote));
+        remote.sin6_family = AF_INET6;
+        remote.sin6_addr = peers[id].inet6.addr6;
+        remote.sin6_port = htons(PORT);
+        sendto(udp6, msg_buf, message_len, 0, (struct sockaddr *)&remote, sizeof(remote));
+    } else {
+        return -3;
+    }
+    return 0;
+}
+
+void SendDisconnectToAll(int udp4, int udp6, Peer peers[], size_t peers_size) {
+    for (size_t i = 0; i < peers_size; i++) {
+        SendDisconnect(udp4, udp6, peers, peers_size, i);
+    }
 }

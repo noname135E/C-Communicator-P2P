@@ -148,7 +148,7 @@ int CreatePeerAtPosition(
         remove_ipv6 = 1;
     }
 
-    printf("PEER LIST CHANGED: Added/changed peer %li\n", actual_position);
+    printf("PEER LIST CHANGED: Added/changed [%li]: %s\n", actual_position, p->user_identifier);
     if (remove_ipv4 + remove_ipv6 != 0) {
         return RemovePeerAddressAtPosition(peers, peers_size, actual_position, remove_ipv4, remove_ipv6);
     }
@@ -173,8 +173,8 @@ int RemovePeerAddressAtPosition(
         memset(&p->inet6, 0, sizeof(p->inet6));
     }
     if (p->inet4.seen == 0 && p->inet6.seen == 0) {
+        printf("PEER LIST CHANGED: Removed peer [%li]: %s\n", pos, p->user_identifier);
         memset(p, 0, sizeof(Peer));
-        printf("PEER LIST CHANGED: Removed peer %li\n", pos);
     }
     return 0;
 }
