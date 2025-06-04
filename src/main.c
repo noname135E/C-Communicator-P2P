@@ -1,8 +1,10 @@
 // Copyright 2025 Michał Jankowski
+#include <fcntl.h>
 #include <net/if.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/file.h>
 #include <poll.h>
 #include <unistd.h>
 
@@ -12,8 +14,7 @@
 
 const unsigned int MAX_POLL_FDS = 5;
 const unsigned int POLL_TIMEOUT_MS = 100;
-
-// TODO(.) / FIXME: CHECK IPv4 DISCOVERY ACTUALLY WORKS
+const char* LOCKFILE_DIR = "/var/lock";
 
 static inline void AddPollFd(
     struct pollfd *fds,
@@ -111,6 +112,19 @@ int main(int argc, char *argv[]) {
     }
     if (gethostname(hostname, sizeof(hostname)) < 0) {
         perror("[FAIL] Could not get hostname");
+        exit(EXIT_FAILURE);
+    }
+
+    int lock_fd = -1;
+    char lockfile[256];
+    snprintf(lockfile, sizeof(lockfile), "%s/c_comm_%s_%d.lock", LOCKFILE_DIR, argv[1], PORT);
+    lock_fd = open(lockfile, O_CREAT | O_RDWR, 0644);
+    if (lock_fd < 0) {
+        perror("[FAIL] Could not obtain lockfile\n");
+        exit(EXIT_FAILURE);
+    } else if (flock(lock_fd, LOCK_EX | LOCK_NB) < 0) {
+        fprintf(stderr, "[FAIL] Another instance is already running on this interface. Cannot proceed.\n");
+        close(lock_fd);
         exit(EXIT_FAILURE);
     }
 
