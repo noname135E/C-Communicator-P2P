@@ -241,6 +241,9 @@ void ProcessMessageCleartext(
         if (location >= 0) {
             id = (size_t) location;
         } else {
+            char ip_str[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, &(addr4->sin_addr), ip_str, sizeof(ip_str));;
+            printf("UNKNOWN USER (%s): %s\n", ip_str, msg);
             return;
         }
     } else if (remote_addr->ss_family == AF_INET6) {
@@ -249,6 +252,9 @@ void ProcessMessageCleartext(
         if (location >= 0) {
             id = (size_t) location;
         } else {
+            char ip_str[INET6_ADDRSTRLEN];
+            inet_ntop(AF_INET6, &(addr6->sin6_addr), ip_str, sizeof(ip_str));
+            printf("UNKNOWN USER (%s): %s\n", ip_str, msg);
             return;
         }
     } else {

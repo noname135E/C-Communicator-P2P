@@ -51,3 +51,9 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# Markdown notes
+*_notes.md
+
+# vscode directory
+./vscode/*
