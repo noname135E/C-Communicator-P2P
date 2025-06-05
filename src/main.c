@@ -134,17 +134,22 @@ int main(int argc, char *argv[]) {
 
     AddPollFd(fds, &nfds, STDIN_FILENO, POLLIN);
     if ((udp4 = GetInet4SocketUDP(argv[1])) < 0) {
-        fprintf(stderr, "Failed to start IPv4/UDP communication, code %i\n", udp4);
+        fprintf(stderr, "[WARN] Failed to start IPv4/UDP communication, code %i\n", udp4);
         udp4 = -999;  // to avoid issues in poll loop
         // (can't think of how that problem would occur, just for peace of mind)
     } else {
         AddPollFd(fds, &nfds, udp4, POLLIN);
     }
     if ((udp6 = GetInet6SocketUDP(argv[1])) < 0) {
-        fprintf(stderr, "Failed to start IPv6/UDP communication, code %i\n", udp6);
+        fprintf(stderr, "[WARN] Failed to start IPv6/UDP communication, code %i\n", udp6);
         udp6 = -999;  // to avoid issues in poll loop
     } else {
         AddPollFd(fds, &nfds, udp6, POLLIN);
+    }
+
+    if (udp4 < 0 && udp6 < 0) {
+        fprintf(stderr, "[FAIL] Could not start UDP communication. Exiting.\n");
+        exit(EXIT_FAILURE);
     }
 
     while (run) {

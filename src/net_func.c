@@ -292,6 +292,8 @@ void ProcessMessageDisconnect(
     RemovePeerAddressAtPosition(peers, peers_size, id, 1, 1);
 }
 
+
+// TODO(.): Rework SendMsg and SendDisconnect to try using the other IP version if preffered fails.
 int SendMsg(int udp4, int udp6, char* cmd, Peer peers[], size_t peers_size) {
     char *data = cmd + 6;
 
@@ -332,17 +334,19 @@ int SendMsg(int udp4, int udp6, char* cmd, Peer peers[], size_t peers_size) {
     }
     message_len = (size_t) encap_length;
 
+    long int result = 0;
     if (peers[id].inet4.seen > peers[id].inet6.seen) {  // 4.seen > 0 so addr is set, use IPv4
         struct sockaddr_in remote;
         memset(&remote, 0, sizeof(remote));
         remote.sin_family = AF_INET;
         remote.sin_addr = peers[id].inet4.addr4;
         remote.sin_port = htons(PORT);
-        if (sendto(udp4, msg_buf, message_len, 0, (struct sockaddr *)&remote, sizeof(remote)) < 0) {
+        if ((result = sendto(udp4, msg_buf, message_len, 0, (struct sockaddr *)&remote, sizeof(remote))) < 0) {
             perror("[FAIL] IPv4: Could not send");
-            return -6;
         }
-    } else if (peers[id].inet6.seen != 0) {  // 6.seen != 0, so addr is set, use IPv6
+    }
+
+    if (result <= 0 &&peers[id].inet6.seen != 0) {  // 6.seen != 0, so addr is set, use IPv6
         struct sockaddr_in6 remote;
         memset(&remote, 0, sizeof(remote));
         remote.sin6_family = AF_INET6;
@@ -352,7 +356,6 @@ int SendMsg(int udp4, int udp6, char* cmd, Peer peers[], size_t peers_size) {
             perror("[FAIL] IPv6: Could not send");
             return -6;
         }
-        return -6;
     } else {  // I don't think this should ever happen
         printf("[FAIL] Could not send - Peer has no associated IPv4/IPv6 address. Somehow.\n");
         return -5;
@@ -377,22 +380,29 @@ int SendDisconnect(int udp4, int udp6, Peer peers[], size_t peers_size, size_t i
     }
     message_len = (size_t) encap_length;
 
+    long int result = 0;
     if (peers[id].inet4.seen > peers[id].inet6.seen) {
         struct sockaddr_in remote;
         memset(&remote, 0, sizeof(remote));
         remote.sin_family = AF_INET;
         remote.sin_addr = peers[id].inet4.addr4;
         remote.sin_port = htons(PORT);
-        sendto(udp4, msg_buf, message_len, 0, (struct sockaddr *)&remote, sizeof(remote));
-    } else if (peers[id].inet6.seen != 0) {
+        result = sendto(udp4, msg_buf, message_len, 0, (struct sockaddr *)&remote, sizeof(remote));
+    }
+
+    if (result <= 0 && peers[id].inet6.seen != 0) {
         struct sockaddr_in6 remote;
         memset(&remote, 0, sizeof(remote));
         remote.sin6_family = AF_INET6;
         remote.sin6_addr = peers[id].inet6.addr6;
         remote.sin6_port = htons(PORT);
-        sendto(udp6, msg_buf, message_len, 0, (struct sockaddr *)&remote, sizeof(remote));
-    } else {
+        result = sendto(udp6, msg_buf, message_len, 0, (struct sockaddr *)&remote, sizeof(remote));
+    } else {  // shouldn't happen
+        printf("[FAIL] Could not send disconnect - Peer has no associated IPv4/IPv6 address. Somehow.\n");
         return -3;
+    }
+    if (result <= 0) {
+        perror("[FAIL] Could not send disconnect");
     }
     return 0;
 }
