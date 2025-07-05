@@ -8,6 +8,7 @@
 #include <poll.h>
 #include <unistd.h>
 
+#include "common.h"
 #include "net_func.h"
 #include "peer.h"
 #include "sock_prep.h"
@@ -15,6 +16,9 @@
 const unsigned int MAX_POLL_FDS = 5;
 const unsigned int POLL_TIMEOUT_MS = 100;
 const char* LOCKFILE_DIR = "/var/lock";
+
+const size_t MSG_BUFFER_SIZE = 2048;
+const size_t NET_BUFFER_SIZE = MSG_BUFFER_SIZE + 2;
 
 static inline void AddPollFd(
     struct pollfd *fds,
@@ -30,19 +34,6 @@ static inline void AddPollFd(
     fds[*nfds].events = events;
     (*nfds)++;
 }
-
-enum Command {
-    CMD_UNKNOWN,
-    CMD_SILENT,
-    CMD_HELP,
-    CMD_EXIT,
-    CMD_CLEAR_ALL,
-    CMD_SCAN,
-    CMD_PRINT_PEERS,
-    CMD_SEND,
-    CMD_DISCONNECT_ALL,
-    CMD_WHOAMI,
-};
 
 enum Command DetermineCommand(char *cmd_string) {
     enum Command output = CMD_UNKNOWN;

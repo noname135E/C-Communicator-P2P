@@ -6,12 +6,12 @@
 
 #include "peer.h"
 
-enum MessageType {
-    SCAN,
-    SCAN_RESPONSE,
-    CLEARTEXT_MESSAGE,
-    DISCONNECT,
-};
+// enum MessageType {
+//     SCAN,
+//     SCAN_RESPONSE,
+//     CLEARTEXT_MESSAGE,
+//     DISCONNECT,
+// };
 
 long int Encapsulate(const enum MessageType msg_type, char* msg, const size_t buf_size);
 int Deencapsulate(char* msg, ssize_t msg_length);
