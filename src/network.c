@@ -9,6 +9,7 @@
 
 const size_t HEADER_LENGTH = 2;
 const size_t MAX_UDP_PAYLOAD_SIZE = 65487;  // IPv4's is slightly larger
+const size_t MAX_UDP_MESSAGE_SIZE = 4096;  // feels sufficiently large
 
 uint16_t CalculateChecksum(char* buf, size_t buf_len) {
     const uint16_t poly = 0x80F;
@@ -177,7 +178,6 @@ SendStatus HelperIPv6SendUnicastUDP(
 SendStatus SendUnicastUDP(
     const MessageType msg_type,
     char* msg,
-    const size_t msg_size,
     int udp4,
     struct sockaddr_in* addr4,
     int udp6,
@@ -188,19 +188,28 @@ SendStatus SendUnicastUDP(
     SendStatus status4 = SEND_IPV4_NOT_ATTEMPTED;
     SendStatus status6 = SEND_IPV6_NOT_ATTEMPTED;
 
+    char encapsulated_binary[MAX_UDP_MESSAGE_SIZE];
+    memset(encapsulated_binary, 0, MAX_UDP_MESSAGE_SIZE);
+
+    size_t encapsulated_binary_length = Encapsulate(msg_type, msg, encapsulated_binary, MAX_UDP_MESSAGE_SIZE);
+
+    if (encapsulated_binary_length < HEADER_LENGTH) {
+        return SEND_IPV4_ERR_ENCAPSULATION || SEND_IPV6_ERR_ENCAPSULATION;
+    }
+
     if (behaviour == SEND_IPV4_ONLY || behaviour == SEND_IPV4_FIRST || behaviour == SEND_BOTH) {
-        status4 = HelperIPv4SendUDP(msg, msg_size, udp4, addr4, print_errors);
+        status4 = HelperIPv4SendUDP(msg, encapsulated_binary_length, udp4, addr4, print_errors);
     }
 
     if (behaviour == SEND_IPV6_FIRST ||
         behaviour == SEND_IPV6_ONLY ||
         behaviour == SEND_BOTH ||
         (behaviour == SEND_IPV4_FIRST && status4 != SEND_IPV4_OK)) {
-        status6 = HelperIPv6SendUnicastUDP(msg, msg_size, udp6, addr6, print_errors);
+        status6 = HelperIPv6SendUnicastUDP(msg, encapsulated_binary_length, udp6, addr6, print_errors);
     }
 
     if (behaviour == SEND_IPV6_FIRST && status6 != SEND_IPV6_OK) {
-        status4 = HelperIPv4SendUDP(msg, msg_size, udp4, addr4, print_errors);
+        status4 = HelperIPv4SendUDP(msg, encapsulated_binary_length, udp4, addr4, print_errors);
     }
 
     return status4 || status6;

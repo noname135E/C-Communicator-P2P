@@ -24,8 +24,10 @@ typedef enum {
     SEND_IPV4_ERR_INVALID_MSG_LEN = 0x04,
     SEND_IPV4_ERR_INVALID_MSG_PTR = 0x05,
     SEND_IPV4_ERR_PARTIALLY_SENT = 0x06,
+    SEND_IPV4_ERR_ENCAPSULATION = 0x0E,
     SEND_IPV4_ERR_OTHER = 0x0F,
     SEND_IPV4_MASK = 0x0F,
+
     SEND_IPV6_OK = 0x00,
     SEND_IPV6_NOT_ATTEMPTED = 0x10,
     SEND_IPV6_ERR_INVALID_FD = 0x20,
@@ -33,6 +35,7 @@ typedef enum {
     SEND_IPV6_ERR_INVALID_MSG_LEN = 0x40,
     SEND_IPV6_ERR_INVALID_MSG_PTR = 0x50,
     SEND_IPV6_ERR_PARTIALLY_SENT = 0x60,
+    SEND_IPV6_ERR_ENCAPSULATION = 0xE0,
     SEND_IPV6_ERR_OTHER = 0xF0,
     SEND_IPV6_MASK = 0xF0,
 } SendStatus;
@@ -52,7 +55,7 @@ uint16_t CalculateChecksum(char* buf, size_t buf_len);
  * @param encapsulated_binary Buffer to put encapsulated message in. NOT NULL-TERMINATED
  * @param encapsulated_size Size of encapsulated_binary.
  *                          Should be no less than 1 byte larger than msg_to_encapsulate (or 2 bytes larger than length).
- * @return Length of encapsulated_binary.
+ * @return Length of encapsulated_binary. 0 indicates failure.
  */
 size_t Encapsulate(
     const MessageType msg_type,
@@ -95,7 +98,6 @@ SendStatus HelperIPv6SendUnicastUDP(
 SendStatus SendUnicastUDP(
     const MessageType msg_type,
     char* msg,
-    const size_t msg_size,
     int udp4,
     struct sockaddr_in* addr4,
     int udp6,
