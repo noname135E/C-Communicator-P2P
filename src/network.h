@@ -17,6 +17,21 @@ typedef enum {
 } SendBehaviour;
 
 typedef enum {
+    CAST_TYPE_NULL,
+    CAST_TYPE_INVALID,
+    CAST_TYPE_UNICAST,
+    CAST_TYPE_MULTICAST,
+    // broadcast intentionally skipped - no usage planned.
+} IpAddrCastType;
+
+typedef enum {
+    SCOPE_TYPE_NULL,
+    SCOPE_TYPE_INVALID_LINKLOCAL,  // for address indicating link-local but scope id of 0
+    SCOPE_TYPE_LINKLOCAL,
+    SCOPE_TYPE_GLOBAL,
+} Ipv6ScopeType;
+
+typedef enum {
     SEND_IPV4_OK = 0x00,
     SEND_IPV4_NOT_ATTEMPTED = 0x01,
     SEND_IPV4_ERR_INVALID_FD = 0x02,
@@ -24,7 +39,9 @@ typedef enum {
     SEND_IPV4_ERR_INVALID_MSG_LEN = 0x04,
     SEND_IPV4_ERR_INVALID_MSG_PTR = 0x05,
     SEND_IPV4_ERR_PARTIALLY_SENT = 0x06,
-    SEND_IPV4_ERR_ENCAPSULATION = 0x0E,
+    SEND_IPV4_ERR_CAST_MISMATCH = 0x07,
+    SEND_IPV4_ERR_ENCAPSULATION = 0x08,
+    // 0x0E should represent an IPv4-only error or be skipped
     SEND_IPV4_ERR_OTHER = 0x0F,
     SEND_IPV4_MASK = 0x0F,
 
@@ -35,7 +52,9 @@ typedef enum {
     SEND_IPV6_ERR_INVALID_MSG_LEN = 0x40,
     SEND_IPV6_ERR_INVALID_MSG_PTR = 0x50,
     SEND_IPV6_ERR_PARTIALLY_SENT = 0x60,
-    SEND_IPV6_ERR_ENCAPSULATION = 0xE0,
+    SEND_IPV6_ERR_CAST_MISMATCH = 0x70,
+    SEND_IPV6_ERR_ENCAPSULATION = 0x80,
+    SEND_IPV6_ERR_INVALID_SCOPE = 0xE0,
     SEND_IPV6_ERR_OTHER = 0xF0,
     SEND_IPV6_MASK = 0xF0,
 } SendStatus;
@@ -79,6 +98,12 @@ MessageType Deencapsulate(
     const size_t msg_size
 );
 
+IpAddrCastType GetIPv4CastType(struct sockaddr_in* addr4);
+
+IpAddrCastType GetIPv6CastType(struct sockaddr_in6* addr6);
+
+Ipv6ScopeType GetIPv6ScopeType(struct sockaddr_in6* addr6);
+
 SendStatus HelperIPv4SendUDP(
     char* msg,
     const size_t msg_size,
@@ -87,7 +112,7 @@ SendStatus HelperIPv4SendUDP(
     short print_errors
 );
 
-SendStatus HelperIPv6SendUnicastUDP(
+SendStatus HelperIPv6SendUDP(
     char* msg,
     const size_t msg_size,
     int udp6,
@@ -95,7 +120,7 @@ SendStatus HelperIPv6SendUnicastUDP(
     short print_errors
 );
 
-SendStatus SendUnicastUDP(
+SendStatus SendUDP(
     const MessageType msg_type,
     char* msg,
     int udp4,
@@ -104,19 +129,6 @@ SendStatus SendUnicastUDP(
     struct sockaddr_in6* addr6,
     const SendBehaviour behaviour,
     short print_errors
-);
-
-SendStatus SendMulticastUDP(
-    const MessageType msg_type,
-    char* msg,
-    const size_t msg_size,
-    int udp4,
-    struct sockaddr_in* addr4,
-    int udp6,
-    struct sockaddr_in6* addr6,
-    const SendBehaviour behaviour,
-    short print_errors,
-    int ifindex
 );
 
 int ReceiveUDP();

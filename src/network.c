@@ -87,6 +87,71 @@ MessageType Deencapsulate(
     return (MessageType) received_msg_type;
 }
 
+IpAddrCastType GetIPv4CastType(struct sockaddr_in* addr4) {
+    if (addr4 == NULL) return CAST_TYPE_NULL;
+
+    uint32_t ip_addr = ntohl(addr4->sin_addr.s_addr);
+    // (0, 224.0.0.0) = Unicast
+    if (ip_addr > 0 && ip_addr < 0xE0000000) return CAST_TYPE_UNICAST;
+    // [224.0.0.0, 239.255.255.255] = Multicast
+    else if (ip_addr <= 0xEFFFFFFF) return CAST_TYPE_MULTICAST;
+    // 0.0.0.0, 255.255.255.255 or other
+    return CAST_TYPE_INVALID;
+}
+
+IpAddrCastType GetIPv6CastType(struct sockaddr_in6* addr6) {
+    if (addr6 == NULL) return CAST_TYPE_NULL;
+
+    const unsigned char *bytes = addr6->sin6_addr.s6_addr;
+    // FF at the start = Multicast
+    if (bytes[0] == 0xFF) return CAST_TYPE_MULTICAST;
+    // ::0 address
+    static const struct in6_addr in6addr_any = IN6ADDR_ANY_INIT;
+    if (memcmp(&addr6->sin6_addr, &in6addr_any, sizeof(struct in6_addr)) == 0) {
+        return CAST_TYPE_INVALID;
+    }
+    // all other addresses are either Unicast or Anycast
+    return CAST_TYPE_UNICAST;
+}
+
+Ipv6ScopeType GetIPv6ScopeType(struct sockaddr_in6* addr6) {
+    if (addr6 == NULL) return SCOPE_TYPE_NULL;
+
+    const unsigned char *bytes = addr6->sin6_addr.s6_addr;
+
+    // ::0 address
+    static const struct in6_addr in6addr_any = IN6ADDR_ANY_INIT;
+    if (memcmp(&addr6->sin6_addr, &in6addr_any, sizeof(struct in6_addr)) == 0) {
+        return SCOPE_TYPE_NULL;
+    }
+
+    // FF at the start = Multicast
+    if (bytes[0] == 0xFF) {
+        uint8_t scope = bytes[1] & 0x0F;
+        switch (scope) {
+            // interface-local not planned to be supported anyway
+            case 0x2:
+                if (addr6->sin6_scope_id == 0) return SCOPE_TYPE_INVALID_LINKLOCAL;
+                else return SCOPE_TYPE_LINKLOCAL;
+                break;
+            default:
+                return SCOPE_TYPE_GLOBAL;  // As the check is important for scope id, other can bee treated as global
+        }
+    }
+
+    // Link-local Unicast (fe80::)
+    if ((bytes[0] == 0xFE) && ((bytes[1] & 0xC0) == 0x80)) {
+        if (addr6->sin6_scope_id == 0) {
+            return SCOPE_TYPE_INVALID_LINKLOCAL;
+        }
+        return SCOPE_TYPE_LINKLOCAL;
+    }
+
+    // All other addresses are considered global
+    return SCOPE_TYPE_GLOBAL;
+}
+
+
 SendStatus HelperIPv4SendUDP(
     char* msg,
     const size_t msg_size,
@@ -131,7 +196,7 @@ SendStatus HelperIPv4SendUDP(
     // Error mapping likely incomplete
 }
 
-SendStatus HelperIPv6SendUnicastUDP(
+SendStatus HelperIPv6SendUDP(
     char* msg,
     const size_t msg_size,
     int udp6,
@@ -175,7 +240,7 @@ SendStatus HelperIPv6SendUnicastUDP(
     // Error mapping likely incomplete
 }
 
-SendStatus SendUnicastUDP(
+SendStatus SendUDP(
     const MessageType msg_type,
     char* msg,
     int udp4,
@@ -187,6 +252,30 @@ SendStatus SendUnicastUDP(
 ) {
     SendStatus status4 = SEND_IPV4_NOT_ATTEMPTED;
     SendStatus status6 = SEND_IPV6_NOT_ATTEMPTED;
+
+    const IpAddrCastType ct4 = GetIPv4CastType(addr4);
+    const IpAddrCastType ct6 = GetIPv6CastType(addr6);
+
+    const Ipv6ScopeType st6 = GetIPv6ScopeType(addr6);
+    if (st6 == SCOPE_TYPE_INVALID_LINKLOCAL) status6 = SEND_IPV6_ERR_INVALID_SCOPE;
+
+    // arguably some of these checks can be skipped for certain behaviours,
+    // but no good reason to add more logic, checking for mismatches already feels on the edge of excess
+    if (ct4 != CAST_TYPE_NULL && ct6 != CAST_TYPE_NULL) {  // at least one not NULL
+
+        if (ct4 == CAST_TYPE_UNICAST && ct6 == CAST_TYPE_MULTICAST ||  // mismatch
+            ct4 == CAST_TYPE_MULTICAST && ct6 == CAST_TYPE_UNICAST) {
+                return SEND_IPV4_ERR_CAST_MISMATCH || SEND_IPV6_ERR_CAST_MISMATCH;
+            }
+
+        if (ct4 == CAST_TYPE_INVALID) status4 = SEND_IPV4_ERR_INVALID_ADDR;
+        if (ct6 == CAST_TYPE_INVALID) status6 = SEND_IPV6_ERR_INVALID_ADDR;
+        if (status4 != SEND_IPV4_NOT_ATTEMPTED || status6 != SEND_IPV6_NOT_ATTEMPTED) {  // at least one invalid
+            return status4 || status6;
+        }
+    } else if (ct4 == CAST_TYPE_NULL && ct6 == CAST_TYPE_NULL) {  // both are NULL
+        return SEND_IPV4_ERR_INVALID_ADDR || SEND_IPV6_ERR_INVALID_ADDR;
+    }
 
     char encapsulated_binary[MAX_UDP_MESSAGE_SIZE];
     memset(encapsulated_binary, 0, MAX_UDP_MESSAGE_SIZE);
@@ -205,7 +294,7 @@ SendStatus SendUnicastUDP(
         behaviour == SEND_IPV6_ONLY ||
         behaviour == SEND_BOTH ||
         (behaviour == SEND_IPV4_FIRST && status4 != SEND_IPV4_OK)) {
-        status6 = HelperIPv6SendUnicastUDP(msg, encapsulated_binary_length, udp6, addr6, print_errors);
+        status6 = HelperIPv6SendUDP(msg, encapsulated_binary_length, udp6, addr6, print_errors);
     }
 
     if (behaviour == SEND_IPV6_FIRST && status6 != SEND_IPV6_OK) {
