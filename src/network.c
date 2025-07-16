@@ -223,7 +223,7 @@ SendStatus HelperIPv6SendUDP(
         return SEND_IPV6_ERR_PARTIALLY_SENT;
     }
     if (print_errors) {
-        perror("[FAIL] Could not send IPv4/UDP");
+        perror("[FAIL] Could not send IPv6/UDP");
     }
     switch (errno) {
         case EBADF:

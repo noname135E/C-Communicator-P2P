@@ -98,12 +98,36 @@ MessageType Deencapsulate(
     const size_t msg_size
 );
 
+/**
+ * @brief Identifies whether IPv4 address is unicast or multicast
+ * @param addr4 sockaddr_in containing IPv4 to check
+ * @return Determined IpAddrCastType
+ */
 IpAddrCastType GetIPv4CastType(struct sockaddr_in* addr4);
 
+/**
+ * @brief Identifies whether IPv6 address is unicast or multicast
+ * @param addr6 sockaddr_in6 containing IPv6 to check
+ * @return Determined IpAddrCastType
+ */
 IpAddrCastType GetIPv6CastType(struct sockaddr_in6* addr6);
 
+/**
+ * @brief Identifies whether IPv6 address is Link-Local and contains a scope_id or Global
+ * @param addr6 sockaddr_in6 containing IPv6 to check
+ * @return Determined Ipv6ScopeType
+ */
 Ipv6ScopeType GetIPv6ScopeType(struct sockaddr_in6* addr6);
 
+/**
+ * @brief Helper function for SendUDP for handling IPv4
+ * @param msg Buffer containing message to send. NOT NULL TERMINATED.
+ * @param msg_size Size of msg to send.
+ * @param udp4 File descriptor of IPv4/UDP socket. If < 0 SEND_IPV4_ERR_INVALID_FD will be returned.
+ * @param addr4 Destination sockaddr_in struct
+ * @param print_errors 1 if errors should be printed, else 0.
+ * @return SendStatus of the sending.
+ */
 SendStatus HelperIPv4SendUDP(
     char* msg,
     const size_t msg_size,
@@ -112,6 +136,15 @@ SendStatus HelperIPv4SendUDP(
     short print_errors
 );
 
+/**
+ * @brief Helper function for SendUDP for handling IPv6
+ * @param msg Buffer containing message to send. NOT NULL TERMINATED.
+ * @param msg_size Size of msg to send.
+ * @param udp6 File descriptor of IPv6/UDP socket. If < 0 SEND_IPV6_ERR_INVALID_FD will be returned.
+ * @param addr6 Destination sockaddr_in6 struct
+ * @param print_errors 1 if errors should be printed, else 0.
+ * @return SendStatus of the sending.
+ */
 SendStatus HelperIPv6SendUDP(
     char* msg,
     const size_t msg_size,
@@ -120,6 +153,21 @@ SendStatus HelperIPv6SendUDP(
     short print_errors
 );
 
+/**
+ * @brief Function to send UDP messages capable of handling IPv4 and IPv6, including fallback.
+ * Messages are encapsulated by this function as part of the process.
+ * @param msg_type MessageType of the message to be sent.
+ * @param msg Buffer containing null-terminated contents to send.
+ * @param udp4 File descriptor of IPv4/UDP socket. If set to negative value, socket will be treated as unavailable.
+ * @param addr4 Destination sockaddr_in for IPv4. Can be null if not needed.
+ * @param udp6 File descriptor of IPv6/UDP socket. If set to negative value, socket will be treated as unavailable.
+ * @param addr6 Destination sockaddr_in6 for IPv6. Can be null if not needed. For link-local addresses scope_id must be set!
+ * @param behaviour How the function should achieve sending of the message. If behaviour permits/calls for use of unavailable socket
+ * function will interpret the attempt as failed due to invalid fd.
+ * @param print_errors 1 if errors should be printed, else 0.
+ * @return Combined SendStatus of IPv4 and IPv6 sending attempts. Beware: Even if behaviour calls for only one of them, the other will
+ * have a status of not attempted.
+ */
 SendStatus SendUDP(
     const MessageType msg_type,
     char* msg,
