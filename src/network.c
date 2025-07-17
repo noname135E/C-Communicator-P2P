@@ -303,3 +303,22 @@ SendStatus SendUDP(
 
     return status4 || status6;
 }
+
+size_t ReceiveUDP(
+    ReceivedMessage* recv_msg_struct,
+    int udp
+) {
+    if (recv_msg_struct->buffer == NULL || recv_msg_struct->buffer_size < 2 || udp < 0) {
+        return 0;
+    }
+    memset(recv_msg_struct->buffer, 0, recv_msg_struct->buffer_size);
+    char recv_binary[MAX_UDP_MESSAGE_SIZE];
+    memset(recv_binary, 0, MAX_UDP_MESSAGE_SIZE);
+
+    ssize_t recv_bytes = recvfrom(udp, recv_binary, MAX_UDP_MESSAGE_SIZE, 0, (struct sockaddr*) &recv_msg_struct->addr, sizeof(recv_msg_struct->addr));
+    if (recv_bytes < 0) return 0;
+
+    recv_msg_struct->msg_type = Deencapsulate(recv_binary, MAX_UDP_MESSAGE_SIZE, recv_msg_struct->buffer, recv_msg_struct->buffer_size);
+    if (recv_msg_struct->msg_type == MSG_INVALID) return 0;
+    return recv_bytes;
+}

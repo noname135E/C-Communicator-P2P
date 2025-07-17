@@ -3,6 +3,7 @@
 #define SRC_NETWORK_H_
 
 #include <netinet/in.h>
+#include <sys/socket.h>
 
 #include "common.h"
 
@@ -58,6 +59,13 @@ typedef enum {
     SEND_IPV6_ERR_OTHER = 0xF0,
     SEND_IPV6_MASK = 0xF0,
 } SendStatus;
+
+typedef struct {
+    MessageType msg_type;
+    char* buffer;
+    size_t buffer_size;
+    sockaddr_storage src_addr;
+} ReceivedMessage;
 
 /**
  * @brief Calculates CRC-12 checksum for string in buf.
@@ -179,9 +187,15 @@ SendStatus SendUDP(
     short print_errors
 );
 
-int ReceiveUDP();
-// TODO(.): Figure out what exactly I want this to do"
-// - just receive and deencapsulate?
-// - also call process?
+/**
+ * @brief Function that receives and deencapsulates UDP messages received on given socket.
+ * @param recv_msg_struct Pointer to ReceivedMessage struct for received information.
+ * @param udp File descriptor of socket to listen to
+ * @return Number of received bytes
+ */
+size_t ReceiveUDP(
+    ReceivedMessage* recv_msg_struct,
+    int udp
+);
 
 #endif  // SRC_NETWORK_H_
