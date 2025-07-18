@@ -2,7 +2,7 @@
 #ifndef SRC_COMMON_H_
 #define SRC_COMMON_H_
 
-extern const char* MCAST_GROUP;
+extern const char* MCAST4_GROUP;
 extern const char* MCAST6_GROUP;
 extern const unsigned int PROGRAM_PORT;
 
