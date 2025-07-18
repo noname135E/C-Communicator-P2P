@@ -70,7 +70,7 @@ typedef struct {
     MessageType msg_type;
     char* buffer;
     size_t buffer_size;
-    sockaddr_storage src_addr;
+    struct sockaddr_storage src_addr;
 } ReceivedMessage;
 
 /**

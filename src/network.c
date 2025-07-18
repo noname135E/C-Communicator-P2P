@@ -173,9 +173,8 @@ SendStatus HelperIPv4SendUDP(
 
     bytes_sent = sendto(udp4, msg, msg_size, 0, (const struct sockaddr *) addr4, sizeof(*addr4));
 
-    if (bytes_sent == msg_size) {
-        return SEND_IPV4_OK;
-    } else if (bytes_sent > 0) {
+    if (bytes_sent > 0) {
+        if (((size_t) bytes_sent) == msg_size) return SEND_IPV4_OK;
         return SEND_IPV4_ERR_PARTIALLY_SENT;
     }
     if (print_errors) {
@@ -217,9 +216,8 @@ SendStatus HelperIPv6SendUDP(
 
     bytes_sent = sendto(udp6, msg, msg_size, 0, (const struct sockaddr *) addr6, sizeof(*addr6));
 
-    if (bytes_sent == msg_size) {
-        return SEND_IPV6_OK;
-    } else if (bytes_sent > 0) {
+    if (bytes_sent > 0) {
+        if (((size_t) bytes_sent) == msg_size) return SEND_IPV6_OK;
         return SEND_IPV6_ERR_PARTIALLY_SENT;
     }
     if (print_errors) {
@@ -263,8 +261,8 @@ SendStatus SendUDP(
     // but no good reason to add more logic, checking for mismatches already feels on the edge of excess
     if (ct4 != CAST_TYPE_NULL && ct6 != CAST_TYPE_NULL) {  // at least one not NULL
 
-        if (ct4 == CAST_TYPE_UNICAST && ct6 == CAST_TYPE_MULTICAST ||  // mismatch
-            ct4 == CAST_TYPE_MULTICAST && ct6 == CAST_TYPE_UNICAST) {
+        if ((ct4 == CAST_TYPE_UNICAST && ct6 == CAST_TYPE_MULTICAST) ||  // mismatch
+            (ct4 == CAST_TYPE_MULTICAST && ct6 == CAST_TYPE_UNICAST)) {
                 return SEND_IPV4_ERR_CAST_MISMATCH || SEND_IPV6_ERR_CAST_MISMATCH;
             }
 
@@ -315,7 +313,8 @@ size_t ReceiveUDP(
     char recv_binary[MAX_UDP_MESSAGE_SIZE];
     memset(recv_binary, 0, MAX_UDP_MESSAGE_SIZE);
 
-    ssize_t recv_bytes = recvfrom(udp, recv_binary, MAX_UDP_MESSAGE_SIZE, 0, (struct sockaddr*) &recv_msg_struct->addr, sizeof(recv_msg_struct->addr));
+    socklen_t src_addr_size = sizeof(recv_msg_struct->src_addr);
+    ssize_t recv_bytes = recvfrom(udp, recv_binary, MAX_UDP_MESSAGE_SIZE, 0, (struct sockaddr*) &recv_msg_struct->src_addr, &src_addr_size);
     if (recv_bytes < 0) return 0;
 
     recv_msg_struct->msg_type = Deencapsulate(recv_binary, MAX_UDP_MESSAGE_SIZE, recv_msg_struct->buffer, recv_msg_struct->buffer_size);
