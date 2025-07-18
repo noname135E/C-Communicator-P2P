@@ -308,7 +308,7 @@ size_t ReceiveUDP(
     ReceivedMessage* recv_msg_struct,
     int udp
 ) {
-    if (recv_msg_struct->buffer == NULL || recv_msg_struct->buffer_size < 2 || udp < 0) {
+    if (recv_msg_struct->buffer == NULL || recv_msg_struct->buffer_size < HEADER_LENGTH || udp < 0) {
         return 0;
     }
     memset(recv_msg_struct->buffer, 0, recv_msg_struct->buffer_size);
