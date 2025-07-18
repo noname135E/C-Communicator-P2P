@@ -11,7 +11,7 @@ extern const unsigned int POLL_TIMEOUT_MS;
 extern const char* LOCKFILE_DIR;
 
 extern const size_t MSG_BUFFER_SIZE;
-extern const size_t NET_BUFFER_SIZE;
+extern const size_t NET_BUFFER_SIZE;  // TODO(.): Figure out what to do with this one
 
 typedef enum {
     CMD_UNKNOWN,
@@ -25,14 +25,5 @@ typedef enum {
     CMD_DISCONNECT_ALL,
     CMD_WHOAMI,
 } Command;
-
-// Only values [0-15] can be encoded.
-typedef enum {
-    MSG_INVALID = -1,
-    MSG_SCAN = 0,
-    MSG_SCAN_RESPONSE = 1,
-    MSG_CLEARTEXT_MESSAGE = 2,
-    MSG_DISCONNECT = 3,
-} MessageType;
 
 #endif  // SRC_COMMON_H_

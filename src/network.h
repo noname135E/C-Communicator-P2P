@@ -5,8 +5,14 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
-#include "common.h"
-
+// Only values [0-15] can be encoded.
+typedef enum {
+    MSG_INVALID = -1,
+    MSG_SCAN = 0,
+    MSG_SCAN_RESPONSE = 1,
+    MSG_CLEARTEXT_MESSAGE = 2,
+    MSG_DISCONNECT = 3,
+} MessageType;
 
 // using BOTH implies that both sockets must work
 typedef enum {
