@@ -11,7 +11,6 @@ extern const unsigned int POLL_TIMEOUT_MS;
 extern const char* LOCKFILE_DIR;
 
 extern const size_t MSG_BUFFER_SIZE;
-extern const size_t NET_BUFFER_SIZE;  // TODO(.): Figure out what to do with this one
 
 typedef enum {
     CMD_UNKNOWN,

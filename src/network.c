@@ -10,6 +10,7 @@
 const size_t HEADER_LENGTH = 2;
 const size_t MAX_UDP_PAYLOAD_SIZE = 65487;  // IPv4's is slightly larger
 const size_t MAX_UDP_MESSAGE_SIZE = 4096;  // feels sufficiently large
+// TODO(.) Maybe max set message size using MSG_BUFFER_SIZE in main?
 
 uint16_t CalculateChecksum(char* buf, size_t buf_len) {
     const uint16_t poly = 0x80F;
