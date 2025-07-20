@@ -14,7 +14,7 @@ const char* MCAST4_GROUP = "224.0.0.192";
 const char* MCAST6_GROUP = "ff02::C0";
 const unsigned int PORT = 8192;
 
-int GetInet4SocketUDP(const char *ifname) {
+int GetUDP4Socket(const char *ifname) {
     int sockfd;
     struct sockaddr_in bind_addr;
     struct ifreq ifr;
@@ -71,7 +71,7 @@ int GetInet4SocketUDP(const char *ifname) {
     return sockfd;
 }
 
-int GetInet6SocketUDP(const char *ifname) {
+int GetUDP6Socket(const char *ifname) {
     int sockfd;
     struct sockaddr_in6 bind_addr;
     struct ipv6_mreq mreq;

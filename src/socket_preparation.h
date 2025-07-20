@@ -19,13 +19,13 @@ typedef enum {
  * @param ifname Name of the interface to bind to.
  * @return A non-negative file descriptor of the created socket or a negative error code (see SocketPreparationError enum).
  */
-int GetInet4SocketUDP(const char *ifname);
+int GetUDP4Socket(const char *ifname);
 
 /**
  * @brief Prepares multicast-capable IPv6 socket bound to specified interface.
  * @param ifname Name of the interface to bind to.
  * @return A non-negative file descriptor of the created socket or a negative error code (see SocketPreparationError enum).
  */
-int GetInet6SocketUDP(const char *ifname);
+int GetUDP6Socket(const char *ifname);
 
 #endif  // SRC_SOCKET_PREPARATION_H_
