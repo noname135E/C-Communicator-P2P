@@ -3,6 +3,7 @@
 #define SRC_NETWORK_H_
 
 #include <netinet/in.h>
+#include <stdbool.h>
 #include <sys/socket.h>
 
 // Only values [0-15] can be encoded.
@@ -147,7 +148,7 @@ SendStatus HelperIPv4SendUDP(
     const size_t msg_size,
     int udp4,
     struct sockaddr_in* addr4,
-    short print_errors
+    bool print_errors
 );
 
 /**
@@ -164,7 +165,7 @@ SendStatus HelperIPv6SendUDP(
     const size_t msg_size,
     int udp6,
     struct sockaddr_in6* addr6,
-    short print_errors
+    bool print_errors
 );
 
 /**
@@ -190,7 +191,7 @@ SendStatus SendUDP(
     int udp6,
     struct sockaddr_in6* addr6,
     const SendBehaviour behaviour,
-    short print_errors
+    bool print_errors
 );
 
 /**

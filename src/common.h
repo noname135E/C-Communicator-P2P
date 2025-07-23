@@ -1,12 +1,13 @@
 // Copyright 2025 Michał Jankowski
 #ifndef SRC_COMMON_H_
 #define SRC_COMMON_H_
+#include <poll.h>
 
 extern const char* MCAST4_GROUP;
 extern const char* MCAST6_GROUP;
 extern const unsigned int PROGRAM_PORT;
 
-extern const unsigned int MAX_POLL_FDS;
+extern const nfds_t MAX_POLL_FDS;
 extern const unsigned int POLL_TIMEOUT_MS;
 extern const char* LOCKFILE_DIR;
 

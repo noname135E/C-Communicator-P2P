@@ -19,4 +19,4 @@ int CreateLocalUserIdentifier(
     size_t user_identifier_size
 );
 
-#endif // SRC_PEERS_H_
+#endif  // SRC_PEERS_H_

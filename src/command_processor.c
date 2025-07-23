@@ -22,7 +22,7 @@ CmdReturnSignal HandleCommand(char* input) {
             return cmd_entries[i].process_function(args_string);
         }
     }
-    printf("Unknown command.\n");
+    printf("Unknown command. See \"/help\" for help.\n");
     return CMD_RETURN_UNKNOWN;
 }
 

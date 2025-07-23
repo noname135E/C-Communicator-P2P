@@ -158,7 +158,7 @@ SendStatus HelperIPv4SendUDP(
     const size_t msg_size,
     int udp4,
     struct sockaddr_in* addr4,
-    short print_errors
+    bool print_errors
 ) {
     ssize_t bytes_sent;
 
@@ -201,7 +201,7 @@ SendStatus HelperIPv6SendUDP(
     const size_t msg_size,
     int udp6,
     struct sockaddr_in6* addr6,
-    short print_errors
+    bool print_errors
 ) {
     ssize_t bytes_sent;
 
@@ -247,7 +247,7 @@ SendStatus SendUDP(
     int udp6,
     struct sockaddr_in6* addr6,
     const SendBehaviour behaviour,
-    short print_errors
+    bool print_errors
 ) {
     SendStatus status4 = SEND_IPV4_NOT_ATTEMPTED;
     SendStatus status6 = SEND_IPV6_NOT_ATTEMPTED;
@@ -261,7 +261,6 @@ SendStatus SendUDP(
     // arguably some of these checks can be skipped for certain behaviours,
     // but no good reason to add more logic, checking for mismatches already feels on the edge of excess
     if (ct4 != CAST_TYPE_NULL && ct6 != CAST_TYPE_NULL) {  // at least one not NULL
-
         if ((ct4 == CAST_TYPE_UNICAST && ct6 == CAST_TYPE_MULTICAST) ||  // mismatch
             (ct4 == CAST_TYPE_MULTICAST && ct6 == CAST_TYPE_UNICAST)) {
                 return SEND_IPV4_ERR_CAST_MISMATCH || SEND_IPV6_ERR_CAST_MISMATCH;
@@ -315,10 +314,20 @@ size_t ReceiveUDP(
     memset(recv_binary, 0, MAX_UDP_MESSAGE_SIZE);
 
     socklen_t src_addr_size = sizeof(recv_msg_struct->src_addr);
-    ssize_t recv_bytes = recvfrom(udp, recv_binary, MAX_UDP_MESSAGE_SIZE, 0, (struct sockaddr*) &recv_msg_struct->src_addr, &src_addr_size);
+    ssize_t recv_bytes = recvfrom(
+        udp,
+        recv_binary,
+        MAX_UDP_MESSAGE_SIZE,
+        0,
+        (struct sockaddr*) &recv_msg_struct->src_addr,
+        &src_addr_size);
     if (recv_bytes < 0) return 0;
 
-    recv_msg_struct->msg_type = Deencapsulate(recv_binary, MAX_UDP_MESSAGE_SIZE, recv_msg_struct->buffer, recv_msg_struct->buffer_size);
+    recv_msg_struct->msg_type = Deencapsulate(
+        recv_binary,
+        MAX_UDP_MESSAGE_SIZE,
+        recv_msg_struct->buffer,
+        recv_msg_struct->buffer_size);
     if (recv_msg_struct->msg_type == MSG_INVALID) return 0;
     return recv_bytes;
 }
