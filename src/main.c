@@ -2,6 +2,7 @@
 #include <net/if.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/file.h>
 #include <poll.h>
 #include "unistd.h"
@@ -18,7 +19,7 @@ const char* LOCKFILE_DIR = "/var/lock";
 
 const size_t MSG_BUFFER_SIZE = 2048;
 
-static inline void AddPollFd(
+static inline ssize_t AddPollFd(
     struct pollfd *fds,
     nfds_t *nfds,
     int fd,
@@ -26,11 +27,12 @@ static inline void AddPollFd(
 ) {
     if (*nfds >= MAX_POLL_FDS) {
         fprintf(stderr, "[ ERR] Failed to register file descriptor in pollfd.\n");
-        return;
+        return -1;
     }
     fds[*nfds].fd = fd;
     fds[*nfds].events = events;
     (*nfds)++;
+    return (ssize_t) *nfds;
 }
 
 static inline int CloseAllFds(
@@ -53,7 +55,25 @@ int main(int argc, char *argv[]) {
     char user_identifier[USER_IDENTIFIER_SIZE];
     char* ifname;
     int ifindex, udp4, udp6;
+    ssize_t udp4_index = -1, udp6_index = -1;
     CmdReturnSignal cmd_signal;
+    Peer peers[MAX_PEERS];
+    memset(peers, 0, sizeof(peers));
+
+    CurrentSendBehaviours send_behaviours = {
+        .both = SEND_BOTH,
+        .ipv4_first = SEND_IPV4_FIRST,
+        .ipv6_first = SEND_IPV6_FIRST,
+    };
+
+    NetworkContext net_context = {
+        .udp4 = -1,
+        .udp6 = -1,
+        .send_behaviours = &send_behaviours,
+        .user_identifier = user_identifier,
+        .peers = peers,
+        .peers_size = MAX_PEERS
+    };
 
     struct pollfd fds[MAX_POLL_FDS];
     nfds_t nfds = 0;
@@ -95,20 +115,41 @@ int main(int argc, char *argv[]) {
 
 
     AddPollFd(fds, &nfds, STDIN_FILENO, POLLIN);
-    // TODO(.): Consider getting a struct to adjust behaviours of sending here.
     if ((udp4 = GetUDP4Socket(ifname)) < 0) {
         fprintf(stderr, "[WARN] Could not create IPv4/UDP socket.\n");
         udp4 = -999;  // to avoid issues in poll loop
         // (can't think of how that problem would occur, just for peace of mind)
+        send_behaviours.both = SEND_IPV6_ONLY;
+        send_behaviours.ipv4_first = SEND_IPV6_ONLY;
     } else {
-        AddPollFd(fds, &nfds, udp4, POLLIN);
+        udp4_index = AddPollFd(fds, &nfds, udp4, POLLIN);
+        if (udp4_index < 0) {
+            fprintf(stderr, "[ ERR] Could not register IPv4/UDP socket in pollfd. Exiting.\n");
+            close(udp4);
+            close(lock_fd);
+            exit(EXIT_FAILURE);
+        }
+        net_context.udp4 = udp4;
         printf("[ OK ] Successfully created IPv4/UDP socket.\n");
     }
     if ((udp6 = GetUDP6Socket(ifname)) < 0) {
         fprintf(stderr, "[WARN] Could not create IPv6/UDP socket.\n");
         udp6 = -999;  // to avoid issues in poll loop
+        // Check for no IPv4 and no IPv6 is present later
+        send_behaviours.both = SEND_IPV4_ONLY;
+        send_behaviours.ipv6_first = SEND_IPV4_ONLY;
     } else {
-        AddPollFd(fds, &nfds, udp6, POLLIN);
+        udp6_index = AddPollFd(fds, &nfds, udp6, POLLIN);
+        if (udp6_index < 0) {
+            fprintf(stderr, "[ ERR] Could not register IPv6/UDP socket in pollfd. Exiting.\n");
+            close(udp6);
+            if (udp4 >= 0) {
+                close(udp4);
+            }
+            close(lock_fd);
+            exit(EXIT_FAILURE);
+        }
+        net_context.udp6 = udp6;
         printf("[ OK ] Successfully created IPv6/UDP socket.\n");
     }
     if (udp4 < 0 && udp6 < 0) {
@@ -122,7 +163,7 @@ int main(int argc, char *argv[]) {
     printf("Hello!\nThis user/instance will be identified as: \"%s\"\n", user_identifier);
     printf("Type \"/help\" for a list of commands or \"/exit\" to exit the application.\n\n");
 
-    while (1) {
+    while (true) {
         int ret = poll(fds, nfds, POLL_TIMEOUT_MS);
 
         if (ret < 0) {
@@ -132,7 +173,7 @@ int main(int argc, char *argv[]) {
             for (nfds_t i = 0; i < nfds; i++) {
                 if (fds[i].revents == STDIN_FILENO) {  // handle user input
                     fgets(stdin_buffer, sizeof(stdin_buffer), stdin);
-                    cmd_signal = HandleCommand(stdin_buffer);
+                    cmd_signal = HandleCommand(stdin_buffer, &net_context);
                     switch (cmd_signal) {
                         case CMD_RETURN_EXIT:
                             return CloseAllFds(fds, nfds, lockfile);
@@ -146,15 +187,28 @@ int main(int argc, char *argv[]) {
 
         // remove fds closed in poll loop
         nfds_t j = 0;
+        bool found_udp4 = false, found_udp6 = false;
         for (nfds_t i = 0; i < nfds; i++) {
             if (fds[i].fd != -1) {
                 if (i != j) {
                     fds[j] = fds[i];
                 }
                 j++;
+            } else if (fds[i].fd == net_context.udp4) {
+                found_udp4 = true;
+            } else if (fds[i].fd == net_context.udp6) {
+                found_udp6 = true;
             }
         }
         nfds = j;
+        if (udp4_index != -1 && !found_udp4) {
+            net_context.udp4 = -1;
+            udp4_index = -1;
+        }
+        if (udp6_index != -1 && !found_udp6) {
+            net_context.udp6 = -1;
+            udp6_index = -1;
+        }
     }
 
     return CloseAllFds(fds, nfds, lockfile);

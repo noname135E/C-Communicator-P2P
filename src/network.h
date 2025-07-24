@@ -24,6 +24,12 @@ typedef enum {
     SEND_BOTH,
 } SendBehaviour;
 
+typedef struct {
+    SendBehaviour both;
+    SendBehaviour ipv4_first;
+    SendBehaviour ipv6_first;
+} CurrentSendBehaviours;
+
 typedef enum {
     CAST_TYPE_NULL,
     CAST_TYPE_INVALID,
@@ -140,7 +146,7 @@ Ipv6ScopeType GetIPv6ScopeType(struct sockaddr_in6* addr6);
  * @param msg_size Size of msg to send.
  * @param udp4 File descriptor of IPv4/UDP socket. If < 0 SEND_IPV4_ERR_INVALID_FD will be returned.
  * @param addr4 Destination sockaddr_in struct
- * @param print_errors 1 if errors should be printed, else 0.
+ * @param print_errors true if errors should be printed, else false.
  * @return SendStatus of the sending.
  */
 SendStatus HelperIPv4SendUDP(
@@ -157,7 +163,7 @@ SendStatus HelperIPv4SendUDP(
  * @param msg_size Size of msg to send.
  * @param udp6 File descriptor of IPv6/UDP socket. If < 0 SEND_IPV6_ERR_INVALID_FD will be returned.
  * @param addr6 Destination sockaddr_in6 struct
- * @param print_errors 1 if errors should be printed, else 0.
+ * @param print_errors true if errors should be printed, else false.
  * @return SendStatus of the sending.
  */
 SendStatus HelperIPv6SendUDP(
@@ -179,7 +185,7 @@ SendStatus HelperIPv6SendUDP(
  * @param addr6 Destination sockaddr_in6 for IPv6. Can be null if not needed. For link-local addresses scope_id must be set!
  * @param behaviour How the function should achieve sending of the message. If behaviour permits/calls for use of unavailable socket
  * function will interpret the attempt as failed due to invalid fd.
- * @param print_errors 1 if errors should be printed, else 0.
+ * @param print_errors true if errors should be printed, else false.
  * @return Combined SendStatus of IPv4 and IPv6 sending attempts. Beware: Even if behaviour calls for only one of them, the other will
  * have a status of not attempted.
  */
