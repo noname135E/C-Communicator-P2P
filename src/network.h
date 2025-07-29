@@ -8,11 +8,11 @@
 
 // Only values [0-15] can be encoded.
 typedef enum {
-    MSG_INVALID = -1,
-    MSG_SCAN = 0,
-    MSG_SCAN_RESPONSE = 1,
-    MSG_CLEARTEXT_MESSAGE = 2,
-    MSG_DISCONNECT = 3,
+    MSG_TYPE_INVALID = -1,
+    MSG_TYPE_SCAN = 0,
+    MSG_TYPE_SCAN_RESPONSE = 1,
+    MSG_TYPE_CLEARTEXT_MESSAGE = 2,
+    MSG_TYPE_DISCONNECT = 3,
 } MessageType;
 
 // using BOTH implies that both sockets must work

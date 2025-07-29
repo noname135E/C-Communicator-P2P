@@ -1,8 +1,13 @@
 // Copyright 2025 Michał Jankowski
+#include <arpa/inet.h>
 #include <stdio.h>
 #include <string.h>
 
+
+#include "common.h"
 #include "command_processor.h"
+#include "network.h"
+#include "network_processing.h"
 #include "peers.h"
 
 // TODO(.): Maybe split this up into sections?
@@ -11,6 +16,7 @@ CmdProcessEntry cmd_entries[] = {
     {"/help", "prints information about available commands", ProcessCmdHelp},
     {"/exit", "exits application", ProcessCmdExit},
     {"/peers", "prints all discovered peers", ProcessCmdPrintPeers},
+    {"/scan", "scans the network for peers", ProcessCmdScan},
     {"/whoami", "prints user identifier", ProcessCmdWhoami},
     {NULL, NULL, NULL}
 };
@@ -71,5 +77,26 @@ CmdReturnSignal ProcessCmdPrintPeers(const char* args_string, NetworkContext* ne
         return CMD_RETURN_ERROR;
     }
     PrintPeers(net_context->peers, net_context->peers_size);
+    return CMD_RETURN_OK;
+}
+
+CmdReturnSignal ProcessCmdScan(const char* args_string, NetworkContext* net_context) {
+    (void) args_string;
+    if (net_context == NULL) {
+        fprintf(stderr, "[ ERR] Scan received NULL pointer.\n");
+        return CMD_RETURN_ERROR;
+    }
+
+    const bool print_errors = true;
+    SendStatus status = ScanLocalMulticast(net_context, print_errors);
+    bool ipv4_ok = ((status & SEND_IPV4_MASK) == SEND_IPV4_OK) ||
+                    ((status & SEND_IPV4_MASK) == SEND_IPV4_NOT_ATTEMPTED);
+    bool ipv6_ok = ((status & SEND_IPV6_MASK) == SEND_IPV6_OK) ||
+                    ((status & SEND_IPV6_MASK) == SEND_IPV6_NOT_ATTEMPTED);
+    if (!ipv4_ok && !ipv6_ok) {
+        fprintf(stderr, "[ ERR] Could not send scan request. Status: 0x%02X\n", status);
+        return CMD_RETURN_ERROR;
+    }
+    printf("Scan request sent.\n");
     return CMD_RETURN_OK;
 }

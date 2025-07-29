@@ -137,3 +137,39 @@ ssize_t FindPeerByUserIdentifier(
     }
     return -1;
 }
+
+ssize_t UpdatePeer(
+    Peer* peers,
+    size_t peers_size,
+    const char* user_identifier,
+    struct sockaddr_in* addr4,
+    struct sockaddr_in6* addr6,
+    UpdatePeerFlags flags
+) {
+    if (peers == NULL || peers_size == 0) {
+        fprintf(stderr, "[ ERR] UpdatePeer: invalid peers array or size.\n");
+        return -1;
+    } else if (user_identifier == NULL) {
+        fprintf(stderr, "[ ERR] UpdatePeer: NULL user_identifier pointer.\n");
+        return -1;
+    } else if (strlen(user_identifier) >= USER_IDENTIFIER_SIZE) {
+        fprintf(stderr, "[ ERR] UpdatePeer: user_identifier too long.\n");
+        return -1;
+    }
+
+    if (flags & UPDATE_PEER_IPV4 && addr4 == NULL) {
+        fprintf(stderr, "[ ERR] UpdatePeer: UPDATE_PEER_IPV4 flag set but addr4 is NULL.\n");
+        return -1;
+    } else if (flags & UPDATE_PEER_IPV6 && addr6 == NULL) {
+        fprintf(stderr, "[ ERR] UpdatePeer: UPDATE_PEER_IPV6 flag set but addr6 is NULL.\n");
+        return -1;
+    }
+
+    ssize_t position = FindPeerByUserIdentifier(peers, peers_size, user_identifier);
+    if (position == -1) {
+        // TODO(.): Find first free position
+    }
+
+    // TODO(.): Finish this
+    return -1;
+}

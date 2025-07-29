@@ -31,8 +31,9 @@ static inline ssize_t AddPollFd(
     }
     fds[*nfds].fd = fd;
     fds[*nfds].events = events;
+    nfds_t ret = *nfds;
     (*nfds)++;
-    return (ssize_t) *nfds;
+    return (ssize_t) ret;
 }
 
 static inline int CloseAllFds(
@@ -54,7 +55,7 @@ int main(int argc, char *argv[]) {
     char stdin_buffer[MSG_BUFFER_SIZE];
     char user_identifier[USER_IDENTIFIER_SIZE];
     char* ifname;
-    int ifindex, udp4, udp6;
+    int udp4, udp6;
     ssize_t udp4_index = -1, udp6_index = -1;
     CmdReturnSignal cmd_signal;
     Peer peers[MAX_PEERS];
@@ -69,6 +70,7 @@ int main(int argc, char *argv[]) {
     NetworkContext net_context = {
         .udp4 = -1,
         .udp6 = -1,
+        .ifindex = 0,
         .send_behaviours = &send_behaviours,
         .user_identifier = user_identifier,
         .peers = peers,
@@ -76,6 +78,7 @@ int main(int argc, char *argv[]) {
     };
 
     struct pollfd fds[MAX_POLL_FDS];
+    memset(fds, 0, sizeof(fds));
     nfds_t nfds = 0;
 
     if (argc != 3) {
@@ -84,8 +87,8 @@ int main(int argc, char *argv[]) {
     }
 
     ifname = argv[1];
-    ifindex = if_nametoindex(ifname);
-    if (ifindex == 0) {
+    net_context.ifindex = if_nametoindex(ifname);
+    if (net_context.ifindex == 0) {
         fprintf(stderr, "[FAIL] Could not find interface: %s: ", ifname);
         perror("");
         exit(EXIT_FAILURE);
@@ -193,21 +196,31 @@ int main(int argc, char *argv[]) {
                 if (i != j) {
                     fds[j] = fds[i];
                 }
+                if (fds[j].fd == net_context.udp4) {
+                    found_udp4 = true;
+                    udp4_index = j;
+                } else if (fds[j].fd == net_context.udp6) {
+                    found_udp6 = true;
+                    udp6_index = j;
+                }
                 j++;
-            } else if (fds[i].fd == net_context.udp4) {
-                found_udp4 = true;
-            } else if (fds[i].fd == net_context.udp6) {
-                found_udp6 = true;
             }
         }
         nfds = j;
         if (udp4_index != -1 && !found_udp4) {
             net_context.udp4 = -1;
             udp4_index = -1;
+            // TODO(.): Add send_behaviour updates.
         }
         if (udp6_index != -1 && !found_udp6) {
             net_context.udp6 = -1;
             udp6_index = -1;
+        }
+
+        if (udp4_index == -1 && udp6_index == -1) {
+            fprintf(stderr, "[ ERR] No UDP sockets available. Exiting.\n");
+            CloseAllFds(fds, nfds, lockfile);
+            return EXIT_FAILURE;
         }
     }
 

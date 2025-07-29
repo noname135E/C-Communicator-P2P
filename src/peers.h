@@ -92,4 +92,28 @@ ssize_t FindPeerByUserIdentifier(
     const char* user_identifier
 );
 
+typedef enum {
+    UPDATE_PEER_IPV4 = 0x1,
+    UPDATE_PEER_IPV6 = 0x2,
+} UpdatePeerFlags;
+
+/**
+ * @brief Updates or creates a peer entry based on the provided addresses and user identifier.
+ * @param peers Array of peers to update.
+ * @param peers_size Size of the peers array.
+ * @param user_identifier User identifier for the peer.
+ * @param addr4 Pointer to the IPv4 address to update or create. May be NULL if flags are set correctly.
+ * @param addr6 Pointer to the IPv6 address to update or create. May be NULL if flags are set correctly.
+ * @param flags Flags to determine which addresses to update or create.
+ * @return Index of the updated or created peer in the array, or -1 on error.
+ */
+ssize_t UpdatePeer(
+    Peer* peers,
+    size_t peers_size,
+    const char* user_identifier,
+    struct sockaddr_in* addr4,
+    struct sockaddr_in6* addr6,
+    UpdatePeerFlags flags
+);
+
 #endif  // SRC_PEERS_H_

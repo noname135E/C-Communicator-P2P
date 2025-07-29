@@ -3,17 +3,7 @@
 #define SRC_COMMAND_PROCESSOR_H_
 #include <stdlib.h>
 
-#include "network.h"
-#include "peers.h"
-
-typedef struct {
-    int udp4;
-    int udp6;
-    CurrentSendBehaviours* send_behaviours;
-    char* user_identifier;
-    Peer* peers;
-    size_t peers_size;
-} NetworkContext;
+#include "network_context.h"
 
 typedef enum {
     CMD_RETURN_ERROR = -1,
@@ -76,5 +66,13 @@ CmdReturnSignal ProcessCmdWhoami(const char* args_string, NetworkContext* net_co
  * @return Will always return CMD_RETURN_OK
  */
 CmdReturnSignal ProcessCmdPrintPeers(const char* args_string, NetworkContext* net_context);
+
+/**
+ * @brief Scans the network for peers.
+ * @param args_string String with user input, null-terminated. This command will not use this argument.
+ * @param net_context Pointer to NetworkContext.
+ * @return Will always return CMD_RETURN_OK
+ */
+CmdReturnSignal ProcessCmdScan(const char* args_string, NetworkContext* net_context);
 
 #endif  // SRC_COMMAND_PROCESSOR_H_

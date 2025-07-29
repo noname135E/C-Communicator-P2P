@@ -66,10 +66,10 @@ MessageType Deencapsulate(
     const size_t msg_part_length = encapsulated_size - HEADER_LENGTH;
     memset(deencapsulated_msg, 0, msg_size);
 
-    if (encapsulated_size < HEADER_LENGTH) return MSG_INVALID;
+    if (encapsulated_size < HEADER_LENGTH) return MSG_TYPE_INVALID;
     // + 1 for the null-terminator
-    if (msg_size < msg_part_length + 1) return MSG_INVALID;
-    if (MSG_BUFFER_SIZE < msg_part_length + 1) return MSG_INVALID;
+    if (msg_size < msg_part_length + 1) return MSG_TYPE_INVALID;
+    if (MSG_BUFFER_SIZE < msg_part_length + 1) return MSG_TYPE_INVALID;
 
     uint16_t header = ((uint8_t)encapsulated_binary[0] << 8) | (uint8_t)encapsulated_binary[1];
     uint16_t received_checksum = header >> 4;
@@ -82,7 +82,7 @@ MessageType Deencapsulate(
     char* start_of_msg = &temp_buf[1];
     memcpy(start_of_msg, encapsulated_binary + HEADER_LENGTH, msg_part_length);
 
-    if (received_checksum != CalculateChecksum(temp_buf, msg_part_length + 1)) return MSG_INVALID;
+    if (received_checksum != CalculateChecksum(temp_buf, msg_part_length + 1)) return MSG_TYPE_INVALID;
     memcpy(deencapsulated_msg, start_of_msg, msg_part_length);
     deencapsulated_msg[msg_part_length] = '\0';
     return (MessageType) received_msg_type;
@@ -136,7 +136,7 @@ Ipv6ScopeType GetIPv6ScopeType(struct sockaddr_in6* addr6) {
                 else return SCOPE_TYPE_LINKLOCAL;
                 break;
             default:
-                return SCOPE_TYPE_GLOBAL;  // As the check is important for scope id, other can bee treated as global
+                return SCOPE_TYPE_GLOBAL;  // As the check is important for scope id, other can be treated as global
         }
     }
 
@@ -285,18 +285,18 @@ SendStatus SendUDP(
     }
 
     if (behaviour == SEND_IPV4_ONLY || behaviour == SEND_IPV4_FIRST || behaviour == SEND_BOTH) {
-        status4 = HelperIPv4SendUDP(msg, encapsulated_binary_length, udp4, addr4, print_errors);
+        status4 = HelperIPv4SendUDP(encapsulated_binary, encapsulated_binary_length, udp4, addr4, print_errors);
     }
 
     if (behaviour == SEND_IPV6_FIRST ||
         behaviour == SEND_IPV6_ONLY ||
         behaviour == SEND_BOTH ||
         (behaviour == SEND_IPV4_FIRST && status4 != SEND_IPV4_OK)) {
-        status6 = HelperIPv6SendUDP(msg, encapsulated_binary_length, udp6, addr6, print_errors);
+        status6 = HelperIPv6SendUDP(encapsulated_binary, encapsulated_binary_length, udp6, addr6, print_errors);
     }
 
     if (behaviour == SEND_IPV6_FIRST && status6 != SEND_IPV6_OK) {
-        status4 = HelperIPv4SendUDP(msg, encapsulated_binary_length, udp4, addr4, print_errors);
+        status4 = HelperIPv4SendUDP(encapsulated_binary, encapsulated_binary_length, udp4, addr4, print_errors);
     }
 
     return status4 || status6;
@@ -328,6 +328,6 @@ size_t ReceiveUDP(
         MAX_UDP_MESSAGE_SIZE,
         recv_msg_struct->buffer,
         recv_msg_struct->buffer_size);
-    if (recv_msg_struct->msg_type == MSG_INVALID) return 0;
+    if (recv_msg_struct->msg_type == MSG_TYPE_INVALID) return 0;
     return recv_bytes;
 }

@@ -12,7 +12,7 @@
 
 const char* MCAST4_GROUP = "224.0.0.192";
 const char* MCAST6_GROUP = "ff02::C0";
-const unsigned int PORT = 8192;
+const unsigned int PROGRAM_PORT = 8192;
 
 int GetUDP4Socket(const char *ifname) {
     int sockfd;
@@ -29,7 +29,7 @@ int GetUDP4Socket(const char *ifname) {
     memset(&bind_addr, 0, sizeof(bind_addr));
     bind_addr.sin_family = AF_INET;
     bind_addr.sin_addr.s_addr = INADDR_ANY;
-    bind_addr.sin_port = htons(PORT);
+    bind_addr.sin_port = htons(PROGRAM_PORT);
 
     if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &optval1, sizeof(optval1)) < 0) {
         close(sockfd);
@@ -85,7 +85,7 @@ int GetUDP6Socket(const char *ifname) {
     memset(&bind_addr, 0, sizeof(bind_addr));
     bind_addr.sin6_family = AF_INET6;
     bind_addr.sin6_addr = in6addr_any;
-    bind_addr.sin6_port = htons(PORT);
+    bind_addr.sin6_port = htons(PROGRAM_PORT);
 
     if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &optval1, sizeof(optval1)) < 0) {
         close(sockfd);
